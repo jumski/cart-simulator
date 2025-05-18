@@ -13,9 +13,28 @@ The interface is designed with two main components:
 1. Canvas/Scene (70% of width) - Shows the physical simulation
 2. Control Panel (30% of width) - Contains sliders, buttons, and mode selectors
 
-## Tech
+## Development Commands
 
-Use Svelte, as described in @svelte.md
+```bash
+# Start development server with hot-reloading
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run type checks
+npm run check
+```
+
+## Tech Stack
+
+- Svelte 5 for UI components
+- TypeScript for type safety
+- Vite for build tooling
+- HTML Canvas for physics visualization
 
 ## Architecture
 
@@ -41,6 +60,28 @@ The core architecture follows a simple state-based pattern:
    - Energy - Shows energy bar charts (kinetic, potential, work)
    - Power - Shows power meter and P-t graph
 
+## Implementation Guidelines
+
+### Component Structure
+- `App.svelte` - Main container component
+- `Scene.svelte` - Canvas rendering component (70% width)
+- `ControlPanel.svelte` - UI controls component (30% width)
+
+### Svelte Patterns to Use
+1. **State Management**:
+   - Use Svelte's built-in reactivity with the `$:` syntax
+   - Follow the observer pattern with `GameState.subscribe(render)`
+   - In Scene.svelte, use `onMount` for subscription and `onDestroy` for cleanup
+
+2. **Canvas Integration**:
+   - Use `bind:this` in Scene.svelte to get direct reference to the Canvas element
+   - Implement a render function that updates the canvas based on GameState
+
+3. **UI Controls**:
+   - Use `bind:value` for sliders and input controls
+   - Use event handlers to call GameState methods directly (start, pause, reset)
+   - Connect radio buttons to GameState.mode for visualization switching
+
 ## Implementation Notes
 
 - The UI does NOT calculate physics - it only reads values from GameState
@@ -59,3 +100,12 @@ When implementing features, keep in mind:
 - Immediate visual feedback is crucial for maintaining engagement
 - Allow interactive exploration to build intuitive understanding rather than rote memorization
 - Make connections between different representations (forces→motion→energy) visually obvious
+
+## Design Specifications
+
+See `ekran-v2.md` for detailed UI specifications including:
+- Layout dimensions and breakpoints
+- Color scheme and typography
+- Canvas drawing details
+- Control panel components
+- Visualization mode details
