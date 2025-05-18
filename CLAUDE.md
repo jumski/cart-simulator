@@ -15,18 +15,23 @@ The interface is designed with two main components:
 
 ## Development Commands
 
+**IMPORTANT: This project uses pnpm as the package manager**
+
 ```bash
+# Install dependencies
+pnpm install
+
 # Start development server with hot-reloading
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Preview production build
-npm run preview
+pnpm preview
 
 # Run type checks
-npm run check
+pnpm check
 ```
 
 ## Tech Stack
@@ -36,6 +41,7 @@ npm run check
 - Vite for build tooling
 - HTML Canvas for physics visualization
 - Bits UI for component library (see @ui.md)
+- pnpm for package management
 
 ## Architecture
 
