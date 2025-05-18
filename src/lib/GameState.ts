@@ -61,10 +61,10 @@ const SIMULATION_STEP = 1/60; // 60 fps in seconds
 const initialState: GameStateType = {
   params: {
     massKg: 2.0,
-    forceN: 5.0,
-    frictionMu: 0.0,
+    forceN: 10.0, // Higher initial force for better visualization
+    frictionMu: 0.2, // Small default friction
     angleDeg: 0, // Always 0, ramp functionality removed
-    durationS: 3.0
+    durationS: 5.0 // Longer duration
   },
   running: false,
   timeS: 0.0,

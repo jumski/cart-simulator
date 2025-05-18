@@ -30,7 +30,8 @@
   
   // Update position constants based on canvas size
   function updatePositionConstants() {
-    TRACK_Y = Math.min(540, height * 0.75); // Y position of the track - 75% down the canvas
+    // Push the track down a bit to make room for the dashboard (120px from dashboard bottom)
+    TRACK_Y = Math.min(550, height * 0.65 + 130); // Y position of the track
     TRACK_START_X = 50; // Start track 50px from left edge for better visibility
     TRACK_END_X = width - 50; // End track 50px from right edge
     console.log('Updated track positions:', { TRACK_Y, TRACK_START_X, TRACK_END_X, width, height });
@@ -877,6 +878,132 @@
     drawForceVector(forceValues.sumN, 70, getCssVar('--color-red'), 'ΣF'); // Sum Force
   }
 
+  // Function to draw the physics dashboard at the top of the screen
+  function drawPhysicsDashboard(): void {
+    if (!ctx) return;
+    
+    // Get all the values from stores
+    const parameters = get(params);
+    const acceleration = get(aMS2);
+    const velocity = get(vMS);
+    const position = get(xM);
+    const forceValues = get(forces);
+    const energyValues = get(energy);
+    const powerValues = get(power);
+    const time = get(timeS);
+    
+    // Dashboard dimensions
+    const DASH_HEIGHT = 100;
+    const DASH_WIDTH = width - 20; // 10px margin on each side
+    const DASH_X = 10;
+    const DASH_Y = 10;
+    
+    // Draw dashboard background
+    ctx.fillStyle = 'rgba(245, 245, 250, 0.9)';
+    ctx.fillRect(DASH_X, DASH_Y, DASH_WIDTH, DASH_HEIGHT);
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(DASH_X, DASH_Y, DASH_WIDTH, DASH_HEIGHT);
+    
+    // Draw title
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 14px Roboto';
+    ctx.textAlign = 'center';
+    ctx.fillText('Physics Values Dashboard', DASH_X + DASH_WIDTH/2, DASH_Y + 15);
+    
+    // Draw separator line
+    ctx.beginPath();
+    ctx.moveTo(DASH_X, DASH_Y + 25);
+    ctx.lineTo(DASH_X + DASH_WIDTH, DASH_Y + 25);
+    ctx.strokeStyle = '#cccccc';
+    ctx.stroke();
+    
+    // Calculate positions for gauges and values
+    const numGauges = 6;
+    const gaugeWidth = DASH_WIDTH / numGauges;
+    const gaugeY = DASH_Y + 45;
+    
+    // Function to draw a gauge with a value
+    function drawGauge(index: number, label: string, value: number, unit: string, minVal: number, maxVal: number, color: string): void {
+      if (!ctx) return;
+      
+      // Position
+      const x = DASH_X + gaugeWidth * index + gaugeWidth/2;
+      
+      // Draw label
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 12px Roboto';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, gaugeY);
+      
+      // Draw value
+      ctx.font = 'bold 16px Roboto';
+      ctx.fillStyle = color;
+      ctx.fillText(value.toFixed(2) + ' ' + unit, x, gaugeY + 22);
+      
+      // Draw gauge background
+      const gaugeLength = gaugeWidth * 0.7;
+      const gaugeHeight = 6;
+      const gaugeX = x - gaugeLength/2;
+      const gaugeY2 = gaugeY + 30;
+      
+      ctx.fillStyle = '#eeeeee';
+      ctx.fillRect(gaugeX, gaugeY2, gaugeLength, gaugeHeight);
+      
+      // Calculate fill width based on value
+      const normalizedValue = (value - minVal) / (maxVal - minVal);
+      const fillWidth = Math.max(0, Math.min(1, normalizedValue)) * gaugeLength;
+      
+      // Draw gauge fill
+      ctx.fillStyle = color;
+      ctx.fillRect(gaugeX, gaugeY2, fillWidth, gaugeHeight);
+      
+      // Draw gauge border
+      ctx.strokeStyle = '#999999';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(gaugeX, gaugeY2, gaugeLength, gaugeHeight);
+      
+      // Draw min/max values
+      ctx.font = '9px Roboto';
+      ctx.fillStyle = '#666666';
+      ctx.textAlign = 'left';
+      ctx.fillText(minVal.toString(), gaugeX, gaugeY2 + gaugeHeight + 10);
+      ctx.textAlign = 'right';
+      ctx.fillText(maxVal.toString(), gaugeX + gaugeLength, gaugeY2 + gaugeHeight + 10);
+    }
+    
+    // Draw each gauge
+    // Forces
+    drawGauge(0, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+    
+    // Acceleration
+    drawGauge(1, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
+    
+    // Velocity - show data but depends on simulation
+    drawGauge(2, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
+    
+    // Position - show data but depends on simulation
+    drawGauge(3, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
+    
+    // Energy - depends on simulation
+    drawGauge(4, "Energy", energyValues.EkJ + energyValues.EpJ, "J", 0, 100, 'purple');
+    
+    // Power - depends on simulation
+    drawGauge(5, "Power", Math.abs(powerValues.instantW), "W", 0, 300, 'orange');
+    
+    // Draw simulation time 
+    ctx.font = '12px Roboto';
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'right';
+    ctx.fillText(`Time: ${time.toFixed(2)} s`, DASH_X + DASH_WIDTH - 10, DASH_Y + 75);
+    
+    // Draw simulation status
+    const isRunning = get(running);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = isRunning ? getCssVar('--color-green') : getCssVar('--color-red');
+    ctx.fillText(`Status: ${isRunning ? 'Running' : 'Paused'}`, DASH_X + 10, DASH_Y + 75);
+  }
+  
   // Main render function
   function render(): void {
     if (!ctx) return;
@@ -897,6 +1024,9 @@
     
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
+    
+    // Draw physics dashboard at the top
+    drawPhysicsDashboard();
     
     // Draw static elements (no ramp, always flat)
     drawTrack();
@@ -936,6 +1066,10 @@
     
     // Add resize listener
     window.addEventListener('resize', handleResize);
+    
+    // Ensure forces are calculated even before simulation starts
+    // This makes the dashboard and preview show accurate values immediately
+    GameState.updateForces(GameState.state);
     
     // Initial render - force a render immediately after mount
     setTimeout(() => {
