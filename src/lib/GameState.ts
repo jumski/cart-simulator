@@ -63,7 +63,7 @@ const initialState: GameStateType = {
     massKg: 2.0,
     forceN: 5.0,
     frictionMu: 0.0,
-    angleDeg: 0,
+    angleDeg: 0, // Always 0, ramp functionality removed
     durationS: 3.0
   },
   running: false,
@@ -118,25 +118,21 @@ function calculatePhysics(state: GameStateType, dt: number): GameStateType {
   });
   const applyForce = newState.timeS <= state.params.durationS;
   
-  // Calculate forces
-  const sinAngle = Math.sin(state.params.angleDeg * Math.PI / 180);
-  const cosAngle = Math.cos(state.params.angleDeg * Math.PI / 180);
+  // Angle is always 0 (flat surface, no ramp)
+  const sinAngle = 0; // sin(0) = 0
+  const cosAngle = 1; // cos(0) = 1
   
-  console.log('Angle calculations:', {
-    angleDeg: state.params.angleDeg,
-    sinAngle: sinAngle,
-    cosAngle: cosAngle
-  });
+  console.log('Flat surface (no ramp)');
   
   // Applied force (only if within duration)
   newState.forces = { ...state.forces };
   newState.forces.appliedN = applyForce ? state.params.forceN : 0;
   
-  // Gravity parallel component (down the ramp)
-  newState.forces.gravityParallelN = state.params.massKg * GRAVITY * sinAngle;
+  // No gravity parallel component (flat surface)
+  newState.forces.gravityParallelN = 0;
   
   // Friction force (opposite to motion direction)
-  const frictionMagnitude = state.params.frictionMu * state.params.massKg * GRAVITY * cosAngle;
+  const frictionMagnitude = state.params.frictionMu * state.params.massKg * GRAVITY;
   
   // Friction is opposite to motion direction, or zero if not moving
   if (Math.abs(state.vMS) < 0.001) {
@@ -257,19 +253,18 @@ export const GameState: GameStateAPI = {
   
   // Calculate forces based on parameters (used for preview)
   updateForces(state: GameStateType): void {
-    // Calculate angle components
-    const sinAngle = Math.sin(state.params.angleDeg * Math.PI / 180);
-    const cosAngle = Math.cos(state.params.angleDeg * Math.PI / 180);
+    // Angle is always 0 (flat surface, no ramp)
+    const sinAngle = 0; // sin(0) = 0
+    const cosAngle = 1; // cos(0) = 1
     
-    // Apply force (as configured)
+    // Force is directly applied (as configured)
     state.forces.appliedN = state.params.forceN;
     
-    // Gravity parallel component (down the ramp)
-    // Only present when angle is non-zero
-    state.forces.gravityParallelN = state.params.massKg * GRAVITY * sinAngle;
+    // No gravity parallel component since angle is always 0
+    state.forces.gravityParallelN = 0;
     
-    // Friction force
-    const frictionMagnitude = state.params.frictionMu * state.params.massKg * GRAVITY * cosAngle;
+    // Friction force on flat surface
+    const frictionMagnitude = state.params.frictionMu * state.params.massKg * GRAVITY;
     
     // Static friction (we assume cart is stationary for preview)
     const otherForces = state.forces.appliedN + state.forces.gravityParallelN;

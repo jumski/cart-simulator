@@ -104,22 +104,7 @@
     ctx.fillRect(TRACK_END_X - 5, TRACK_Y - 5, 10, 10);
   }
   
-  function drawRamp(angleDeg: number): void {
-    if (!ctx || angleDeg === 0) return;
-    
-    // Only draw ramp if angle > 0
-    const rampLength = 400; // 0-400px as per spec
-    const rampHeight = rampLength * Math.sin(angleDeg * Math.PI / 180);
-    
-    // Draw ramp
-    ctx.beginPath();
-    ctx.moveTo(0, TRACK_Y);
-    ctx.lineTo(rampLength, TRACK_Y - rampHeight);
-    ctx.lineTo(rampLength, TRACK_Y);
-    ctx.closePath();
-    ctx.fillStyle = getCssVar('--color-ramp');
-    ctx.fill();
-  }
+  // No ramp drawing function - always flat surface
   
   function drawCart(positionM: number): void {
     if (!ctx) return;
@@ -873,16 +858,14 @@
     ctx.font = '11px Roboto';
     ctx.textAlign = 'left';
     ctx.fillText(`Mass: ${parameters.massKg.toFixed(1)} kg`, PREVIEW_X + 10, PREVIEW_Y + 30);
-    ctx.fillText(`Angle: ${parameters.angleDeg}°`, PREVIEW_X + 10, PREVIEW_Y + 45);
     
     ctx.textAlign = 'right';
     ctx.fillText(`Acc: ${get(aMS2).toFixed(2)} m/s²`, PREVIEW_X + PREVIEW_WIDTH - 10, PREVIEW_Y + 30);
     ctx.fillText(`μ: ${parameters.frictionMu.toFixed(2)}`, PREVIEW_X + PREVIEW_WIDTH - 10, PREVIEW_Y + 45);
     
     // Draw all force vectors with spacing
-    drawForceVector(forceValues.appliedN, -25, getCssVar('--color-green'), 'F'); // Applied Force
-    drawForceVector(forceValues.gravityParallelN, 0, '#9932CC', 'Fg'); // Gravity (purple)
-    drawForceVector(forceValues.frictionN, 25, getCssVar('--color-blue'), 'Ffr'); // Friction
+    drawForceVector(forceValues.appliedN, -15, getCssVar('--color-green'), 'F'); // Applied Force
+    drawForceVector(forceValues.frictionN, 15, getCssVar('--color-blue'), 'Ffr'); // Friction
     
     // Draw net force at bottom
     ctx.fillStyle = '#000000';
@@ -915,8 +898,7 @@
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
-    // Draw static elements
-    drawRamp(get(params).angleDeg);
+    // Draw static elements (no ramp, always flat)
     drawTrack();
     drawScale();
     

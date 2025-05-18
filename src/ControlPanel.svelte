@@ -111,22 +111,7 @@
       </div>
     </div>
     
-    <!-- Angle Slider -->
-    <div class="parameter-slider">
-      <div class="parameter-label">
-        <span>Ramp [°]</span>
-        <span class="parameter-value">{$params.angleDeg.toFixed(0)}</span>
-      </div>
-      <input 
-        type="range" 
-        min="0"
-        max="30"
-        step="1"
-        value={$params.angleDeg}
-        on:input={(e) => updateAngle(e.currentTarget.value)}
-        class="slider-root"
-      />
-    </div>
+    <!-- Angle is removed, always flat (0°) -->
     
     <!-- Duration Slider -->
     <div class="parameter-slider">
