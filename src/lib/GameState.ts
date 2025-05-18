@@ -1,9 +1,14 @@
-import { writable, derived, get } from 'svelte/store';
+import { writable, derived, get, type Writable, type Readable } from 'svelte/store';
 
 // Type definitions for our simulation
 export type VisualizationMode = 'forces' | 'motion' | 'energy' | 'power';
 
-interface Parameters {
+export interface PowerPoint {
+  t: number; // Time in seconds
+  P: number; // Power in Watts
+}
+
+export interface Parameters {
   massKg: number;
   forceN: number;
   frictionMu: number;
@@ -11,23 +16,23 @@ interface Parameters {
   durationS: number;
 }
 
-interface Forces {
+export interface Forces {
   sumN: number;
   appliedN: number;
   frictionN: number;
   gravityParallelN: number;
 }
 
-interface Energy {
+export interface Energy {
   EkJ: number;  // Kinetic energy
   EpJ: number;  // Potential energy
   WJ: number;   // Work done
   lossJ: number; // Energy loss (optional)
 }
 
-interface Power {
+export interface Power {
   instantW: number;  // Instantaneous power
-  log: Array<{t: number, P: number}>; // Power history for the graph
+  log: Array<PowerPoint>; // Power history for the graph
 }
 
 export interface GameStateType {
@@ -86,7 +91,7 @@ const initialState: GameStateType = {
 };
 
 // Create the main game state store
-export const gameState = writable<GameStateType>({...initialState});
+export const gameState: Writable<GameStateType> = writable<GameStateType>({...initialState});
 
 // Animation frame control
 let animationFrameId: number | null = null;
@@ -178,19 +183,29 @@ function animationLoop(timestamp: number) {
 }
 
 // Create derived stores for each property to make them easier to access
-export const params = derived(gameState, $state => $state.params);
-export const running = derived(gameState, $state => $state.running);
-export const timeS = derived(gameState, $state => $state.timeS);
-export const mode = derived(gameState, $state => $state.mode);
-export const xM = derived(gameState, $state => $state.xM);
-export const vMS = derived(gameState, $state => $state.vMS);
-export const aMS2 = derived(gameState, $state => $state.aMS2);
-export const forces = derived(gameState, $state => $state.forces);
-export const energy = derived(gameState, $state => $state.energy);
-export const power = derived(gameState, $state => $state.power);
+export const params: Readable<Parameters> = derived(gameState, $state => $state.params);
+export const running: Readable<boolean> = derived(gameState, $state => $state.running);
+export const timeS: Readable<number> = derived(gameState, $state => $state.timeS);
+export const mode: Readable<VisualizationMode> = derived(gameState, $state => $state.mode);
+export const xM: Readable<number> = derived(gameState, $state => $state.xM);
+export const vMS: Readable<number> = derived(gameState, $state => $state.vMS);
+export const aMS2: Readable<number> = derived(gameState, $state => $state.aMS2);
+export const forces: Readable<Forces> = derived(gameState, $state => $state.forces);
+export const energy: Readable<Energy> = derived(gameState, $state => $state.energy);
+export const power: Readable<Power> = derived(gameState, $state => $state.power);
+
+// Define types for the GameState API
+export interface GameStateAPI {
+  readonly state: GameStateType;
+  updateParam<K extends keyof Parameters>(key: K, value: Parameters[K]): void;
+  setMode(newMode: VisualizationMode): void;
+  start(): void;
+  pause(): void;
+  reset(): void;
+}
 
 // Public GameState API
-export const GameState = {
+export const GameState: GameStateAPI = {
   // Get current state
   get state(): GameStateType {
     return get(gameState);

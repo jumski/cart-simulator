@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { 
     GameState, 
@@ -14,8 +14,8 @@
   } from './lib/GameState';
   
   // Reference to the canvas element
-  let canvas;
-  let ctx;
+  let canvas: HTMLCanvasElement;
+  let ctx: CanvasRenderingContext2D | null;
   
   // Keep track of canvas dimensions for responsive design
   let width = 896; // Default from spec (70% of 1280px)
@@ -31,12 +31,12 @@
   const MAX_HEIGHT = 100; // Used for energy bars
   
   // Helper to get CSS variable values
-  function getCssVar(name) {
+  function getCssVar(name: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
   // Handle resize
-  function handleResize() {
+  function handleResize(): void {
     if (canvas) {
       // Get actual size of canvas container
       const container = canvas.parentElement;
@@ -56,7 +56,7 @@
   }
 
   // Functions for drawing scene elements
-  function drawTrack() {
+  function drawTrack(): void {
     if (!ctx) return;
     
     ctx.beginPath();
@@ -67,7 +67,7 @@
     ctx.stroke();
   }
   
-  function drawRamp(angleDeg) {
+  function drawRamp(angleDeg: number): void {
     if (!ctx || angleDeg === 0) return;
     
     // Only draw ramp if angle > 0
@@ -84,7 +84,7 @@
     ctx.fill();
   }
   
-  function drawCart(positionM) {
+  function drawCart(positionM: number): void {
     if (!ctx) return;
     
     // Convert meters to pixels
@@ -118,7 +118,7 @@
     ctx.fill();
   }
   
-  function drawScale() {
+  function drawScale(): void {
     if (!ctx) return;
     
     // Draw scale markings every 1m (80px)
@@ -144,7 +144,7 @@
   }
   
   // Function to draw force vectors
-  function drawForces() {
+  function drawForces(): void {
     if (!ctx) return;
     
     // Constants for vector drawing
@@ -152,13 +152,13 @@
     const ARROW_HEAD_SIZE = 10;
     
     // Calculate cart center position (for vector origin)
-    const cartXPixels = xM.value * SCALE_FACTOR;
+    const cartXPixels = $xM * SCALE_FACTOR;
     const cartYCenter = TRACK_Y - CART_HEIGHT / 2;
     
     // Helper function to draw a force vector
-    function drawForceVector(force, yOffset, color, label) {
-      // Skip if force is zero or very small
-      if (Math.abs(force) < 0.1) return;
+    function drawForceVector(force: number, yOffset: number, color: string, label: string): void {
+      // Skip if force is zero or very small or ctx is null
+      if (Math.abs(force) < 0.1 || !ctx) return;
       
       // Calculate arrow dimensions
       const arrowLength = Math.abs(force) * FORCE_SCALE;
@@ -205,17 +205,17 @@
     
     // Draw each force vector with vertical spacing
     // Total Force (Sum)
-    drawForceVector(forces.value.sumN, -30, getCssVar('--color-red'), '\u03a3F');
+    drawForceVector($forces.sumN, -30, getCssVar('--color-red'), '\u03a3F');
     
     // Applied Force
-    drawForceVector(forces.value.appliedN, 0, getCssVar('--color-green'), 'F');
+    drawForceVector($forces.appliedN, 0, getCssVar('--color-green'), 'F');
     
     // Friction Force
-    drawForceVector(forces.value.frictionN, 30, getCssVar('--color-blue'), 'F_fr');
+    drawForceVector($forces.frictionN, 30, getCssVar('--color-blue'), 'F_fr');
   }
   
   // Function to draw motion visualization (velocity arrow and graphs)
-  function drawMotion() {
+  function drawMotion(): void {
     if (!ctx) return;
     
     // Draw velocity arrow
@@ -226,23 +226,23 @@
   }
   
   // Function to draw velocity arrow
-  function drawVelocityArrow() {
+  function drawVelocityArrow(): void {
     if (!ctx) return;
     
     // Skip if velocity is very small
-    if (Math.abs(vMS.value) < 0.01) return;
+    if (Math.abs($vMS) < 0.01) return;
     
     // Constants for arrow drawing
     const VELOCITY_SCALE = 15; // pixels per m/s
     const ARROW_HEAD_SIZE = 10;
     
     // Calculate cart center position (for vector origin)
-    const cartXPixels = xM.value * SCALE_FACTOR;
+    const cartXPixels = $xM * SCALE_FACTOR;
     const cartYCenter = TRACK_Y - CART_HEIGHT - 20; // Above the cart
     
     // Calculate arrow dimensions
-    const arrowLength = Math.abs(vMS.value) * VELOCITY_SCALE;
-    const arrowDirection = Math.sign(vMS.value);
+    const arrowLength = Math.abs($vMS) * VELOCITY_SCALE;
+    const arrowDirection = Math.sign($vMS);
     
     // Start position
     const startX = cartXPixels;
@@ -253,38 +253,40 @@
     const endY = startY;
     
     // Draw the line
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, startY);
-    ctx.strokeStyle = getCssVar('--color-blue');
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    // Draw the arrow head
-    ctx.beginPath();
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - ARROW_HEAD_SIZE * arrowDirection, endY - ARROW_HEAD_SIZE / 2);
-    ctx.lineTo(endX - ARROW_HEAD_SIZE * arrowDirection, endY + ARROW_HEAD_SIZE / 2);
-    ctx.closePath();
-    ctx.fillStyle = getCssVar('--color-blue');
-    ctx.fill();
-    
-    // Draw the label
-    ctx.fillStyle = getCssVar('--color-blue');
-    ctx.font = 'bold 14px Roboto';
-    ctx.textBaseline = 'middle';
-    
-    if (arrowDirection > 0) {
-      ctx.textAlign = 'left';
-      ctx.fillText(`v = ${Math.abs(vMS.value).toFixed(1)} m/s`, endX + 5, endY);
-    } else {
-      ctx.textAlign = 'right';
-      ctx.fillText(`v = ${Math.abs(vMS.value).toFixed(1)} m/s`, endX - 5, endY);
+    if (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, startY);
+      ctx.strokeStyle = getCssVar('--color-blue');
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Draw the arrow head
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - ARROW_HEAD_SIZE * arrowDirection, endY - ARROW_HEAD_SIZE / 2);
+      ctx.lineTo(endX - ARROW_HEAD_SIZE * arrowDirection, endY + ARROW_HEAD_SIZE / 2);
+      ctx.closePath();
+      ctx.fillStyle = getCssVar('--color-blue');
+      ctx.fill();
+      
+      // Draw the label
+      ctx.fillStyle = getCssVar('--color-blue');
+      ctx.font = 'bold 14px Roboto';
+      ctx.textBaseline = 'middle';
+      
+      if (arrowDirection > 0) {
+        ctx.textAlign = 'left';
+        ctx.fillText(`v = ${Math.abs($vMS).toFixed(1)} m/s`, endX + 5, endY);
+      } else {
+        ctx.textAlign = 'right';
+        ctx.fillText(`v = ${Math.abs($vMS).toFixed(1)} m/s`, endX - 5, endY);
+      }
     }
   }
   
   // Function to draw motion graphs (x-t, v-t, a-t)
-  function drawMotionGraphs() {
+  function drawMotionGraphs(): void {
     if (!ctx) return;
     
     // Graph dimensions and position
@@ -297,99 +299,102 @@
     const MAX_TIME = 10; // seconds to show
     const TIME_SCALE = GRAPH_WIDTH / MAX_TIME; // pixels per second
     
+    // Create a reference that TypeScript knows is non-null
+    const context = ctx!;
+    
     // Draw graph background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    context.strokeStyle = '#000000';
+    context.lineWidth = 1;
+    context.strokeRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
     
     // Draw time axis
     const Y_AXIS = GRAPH_Y + GRAPH_HEIGHT / 2;
-    ctx.beginPath();
-    ctx.moveTo(GRAPH_X, Y_AXIS);
-    ctx.lineTo(GRAPH_X + GRAPH_WIDTH, Y_AXIS);
-    ctx.strokeStyle = '#888888';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    context.beginPath();
+    context.moveTo(GRAPH_X, Y_AXIS);
+    context.lineTo(GRAPH_X + GRAPH_WIDTH, Y_AXIS);
+    context.strokeStyle = '#888888';
+    context.lineWidth = 1;
+    context.stroke();
     
     // Draw time markers
     for (let t = 0; t <= MAX_TIME; t += 1) {
       const x = GRAPH_X + t * TIME_SCALE;
       
       // Draw tick
-      ctx.beginPath();
-      ctx.moveTo(x, Y_AXIS - 5);
-      ctx.lineTo(x, Y_AXIS + 5);
-      ctx.strokeStyle = '#888888';
-      ctx.stroke();
+      context.beginPath();
+      context.moveTo(x, Y_AXIS - 5);
+      context.lineTo(x, Y_AXIS + 5);
+      context.strokeStyle = '#888888';
+      context.stroke();
       
       // Draw label every 2 seconds
       if (t % 2 === 0) {
-        ctx.fillStyle = '#333333';
-        ctx.font = '12px Roboto';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${t}s`, x, Y_AXIS + 20);
+        context.fillStyle = '#333333';
+        context.font = '12px Roboto';
+        context.textAlign = 'center';
+        context.fillText(`${t}s`, x, Y_AXIS + 20);
       }
     }
     
     // Draw position graph (x-t)
-    if (timeS.value > 0) {
+    if ($timeS > 0) {
       const POSITION_SCALE = GRAPH_HEIGHT / 4 / 10; // 10m max range
       
-      ctx.beginPath();
-      ctx.moveTo(GRAPH_X, Y_AXIS - xM.value * POSITION_SCALE);
-      ctx.lineTo(GRAPH_X + timeS.value * TIME_SCALE, Y_AXIS - xM.value * POSITION_SCALE);
-      ctx.strokeStyle = getCssVar('--color-green');
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      context.beginPath();
+      context.moveTo(GRAPH_X, Y_AXIS - $xM * POSITION_SCALE);
+      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $xM * POSITION_SCALE);
+      context.strokeStyle = getCssVar('--color-green');
+      context.lineWidth = 2;
+      context.stroke();
       
       // Label
-      ctx.fillStyle = getCssVar('--color-green');
-      ctx.font = '12px Roboto';
-      ctx.textAlign = 'left';
-      ctx.fillText('x(t)', GRAPH_X + 10, GRAPH_Y + 15);
+      context.fillStyle = getCssVar('--color-green');
+      context.font = '12px Roboto';
+      context.textAlign = 'left';
+      context.fillText('x(t)', GRAPH_X + 10, GRAPH_Y + 15);
     }
     
     // Draw velocity graph (v-t)
-    if (timeS.value > 0) {
+    if ($timeS > 0) {
       const VELOCITY_SCALE = GRAPH_HEIGHT / 4 / 5; // 5m/s max range
       
-      ctx.beginPath();
-      ctx.moveTo(GRAPH_X, Y_AXIS - 0);
-      ctx.lineTo(GRAPH_X + timeS.value * TIME_SCALE, Y_AXIS - vMS.value * VELOCITY_SCALE);
-      ctx.strokeStyle = getCssVar('--color-blue');
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      context.beginPath();
+      context.moveTo(GRAPH_X, Y_AXIS - 0);
+      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $vMS * VELOCITY_SCALE);
+      context.strokeStyle = getCssVar('--color-blue');
+      context.lineWidth = 2;
+      context.stroke();
       
       // Label
-      ctx.fillStyle = getCssVar('--color-blue');
-      ctx.font = '12px Roboto';
-      ctx.textAlign = 'left';
-      ctx.fillText('v(t)', GRAPH_X + 10, GRAPH_Y + 30);
+      context.fillStyle = getCssVar('--color-blue');
+      context.font = '12px Roboto';
+      context.textAlign = 'left';
+      context.fillText('v(t)', GRAPH_X + 10, GRAPH_Y + 30);
     }
     
     // Draw acceleration graph (a-t)
-    if (timeS.value > 0) {
+    if ($timeS > 0) {
       const ACCELERATION_SCALE = GRAPH_HEIGHT / 4 / 2; // 2m/s² max range
       
-      ctx.beginPath();
-      ctx.moveTo(GRAPH_X, Y_AXIS - 0);
-      ctx.lineTo(GRAPH_X + timeS.value * TIME_SCALE, Y_AXIS - aMS2.value * ACCELERATION_SCALE);
-      ctx.strokeStyle = getCssVar('--color-red');
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      context.beginPath();
+      context.moveTo(GRAPH_X, Y_AXIS - 0);
+      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $aMS2 * ACCELERATION_SCALE);
+      context.strokeStyle = getCssVar('--color-red');
+      context.lineWidth = 2;
+      context.stroke();
       
       // Label
-      ctx.fillStyle = getCssVar('--color-red');
-      ctx.font = '12px Roboto';
-      ctx.textAlign = 'left';
-      ctx.fillText('a(t)', GRAPH_X + 10, GRAPH_Y + 45);
+      context.fillStyle = getCssVar('--color-red');
+      context.font = '12px Roboto';
+      context.textAlign = 'left';
+      context.fillText('a(t)', GRAPH_X + 10, GRAPH_Y + 45);
     }
   }
   
   // Function to draw energy visualization
-  function drawEnergy() {
+  function drawEnergy(): void {
     if (!ctx) return;
     
     // Constants for bar charts
@@ -399,25 +404,25 @@
     const BAR_SPACING = 80;
     
     // Calculate cart center position (for bar placement)
-    const cartXPixels = xM.value * SCALE_FACTOR;
+    const cartXPixels = $xM * SCALE_FACTOR;
     const barY = TRACK_Y - CART_HEIGHT - 20 - MAX_HEIGHT; // Above the cart
     
     // Calculate bar heights (clamped to MAX_HEIGHT)
-    const kineticHeight = Math.min(energy.value.EkJ * ENERGY_SCALE, MAX_HEIGHT);
-    const potentialHeight = Math.min(energy.value.EpJ * ENERGY_SCALE, MAX_HEIGHT);
-    const workHeight = Math.min(energy.value.WJ * ENERGY_SCALE, MAX_HEIGHT);
+    const kineticHeight = Math.min($energy.EkJ * ENERGY_SCALE, MAX_HEIGHT);
+    const potentialHeight = Math.min($energy.EpJ * ENERGY_SCALE, MAX_HEIGHT);
+    const workHeight = Math.min($energy.WJ * ENERGY_SCALE, MAX_HEIGHT);
     
     // Draw kinetic energy bar
     const kineticX = cartXPixels - BAR_SPACING;
-    drawEnergyBar(kineticX, barY, BAR_WIDTH, kineticHeight, getCssVar('--color-red'), 'Ek', energy.value.EkJ);
+    drawEnergyBar(kineticX, barY, BAR_WIDTH, kineticHeight, getCssVar('--color-red'), 'Ek', $energy.EkJ);
     
     // Draw potential energy bar
     const potentialX = cartXPixels;
-    drawEnergyBar(potentialX, barY, BAR_WIDTH, potentialHeight, getCssVar('--color-green'), 'Ep', energy.value.EpJ);
+    drawEnergyBar(potentialX, barY, BAR_WIDTH, potentialHeight, getCssVar('--color-green'), 'Ep', $energy.EpJ);
     
     // Draw work bar
     const workX = cartXPixels + BAR_SPACING;
-    drawEnergyBar(workX, barY, BAR_WIDTH, workHeight, getCssVar('--color-blue'), 'W', energy.value.WJ);
+    drawEnergyBar(workX, barY, BAR_WIDTH, workHeight, getCssVar('--color-blue'), 'W', $energy.WJ);
     
     // Draw scale
     ctx.strokeStyle = '#000000';
@@ -444,7 +449,7 @@
   }
   
   // Helper function to draw an energy bar
-  function drawEnergyBar(x, y, width, height, color, label, value) {
+  function drawEnergyBar(x: number, y: number, width: number, height: number, color: string, label: string, value: number): void {
     if (!ctx) return;
     
     // Draw bar background
@@ -471,7 +476,7 @@
   }
   
   // Function to draw power visualization with meter and graph
-  function drawPower() {
+  function drawPower(): void {
     if (!ctx) return;
     
     // Draw digital power display
@@ -485,7 +490,7 @@
   }
   
   // Function to draw digital power display
-  function drawPowerDigitalDisplay() {
+  function drawPowerDigitalDisplay(): void {
     if (!ctx) return;
     
     // Position of the display
@@ -504,11 +509,11 @@
     ctx.font = 'bold 24px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`P = ${Math.abs(power.value.instantW).toFixed(0)} W`, x + 75, y + 25);
+    ctx.fillText(`P = ${Math.abs($power.instantW).toFixed(0)} W`, x + 75, y + 25);
   }
   
   // Function to draw power meter
-  function drawPowerMeter() {
+  function drawPowerMeter(): void {
     if (!ctx) return;
     
     // Meter constants
@@ -518,7 +523,7 @@
     const MAX_POWER = 300; // Watts
     
     // Calculate power percentage (-1 to 1)
-    const powerPercent = Math.max(-1, Math.min(1, power.value.instantW / MAX_POWER));
+    const powerPercent = Math.max(-1, Math.min(1, $power.instantW / MAX_POWER));
     
     // Draw meter background
     ctx.beginPath();
@@ -585,7 +590,7 @@
   }
   
   // Function to draw power-time graph
-  function drawPowerGraph() {
+  function drawPowerGraph(): void {
     if (!ctx) return;
     
     // Graph dimensions and position
@@ -655,19 +660,19 @@
     }
     
     // Draw power graph from logged data points
-    if (power.value.log.length > 1) {
+    if ($power.log.length > 1) {
       ctx.beginPath();
       
       // Start from the first point
-      const firstPoint = power.value.log[0];
+      const firstPoint = $power.log[0];
       ctx.moveTo(
         GRAPH_X + firstPoint.t * TIME_SCALE, 
         Y_AXIS - firstPoint.P * POWER_SCALE
       );
       
       // Connect all points
-      for (let i = 1; i < power.value.log.length; i++) {
-        const point = power.value.log[i];
+      for (let i = 1; i < $power.log.length; i++) {
+        const point = $power.log[i];
         ctx.lineTo(
           GRAPH_X + point.t * TIME_SCALE, 
           Y_AXIS - point.P * POWER_SCALE
@@ -681,28 +686,28 @@
   }
 
   // Main render function
-  function render() {
+  function render(): void {
     if (!ctx) return;
     
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
     // Draw static elements
-    drawRamp(params.value.angleDeg);
+    drawRamp($params.angleDeg);
     drawTrack();
     drawScale();
     
     // Draw cart at current position
-    drawCart(xM.value);
+    drawCart($xM);
     
     // Mode-specific rendering
-    if (mode.value === 'forces') {
+    if ($mode === 'forces') {
       drawForces();
-    } else if (mode.value === 'motion') {
+    } else if ($mode === 'motion') {
       drawMotion();
-    } else if (mode.value === 'energy') {
+    } else if ($mode === 'energy') {
       drawEnergy();
-    } else if (mode.value === 'power') {
+    } else if ($mode === 'power') {
       drawPower();
     }
   }

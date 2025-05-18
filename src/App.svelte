@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Scene from './Scene.svelte';
   import ControlPanel from './ControlPanel.svelte';
 </script>

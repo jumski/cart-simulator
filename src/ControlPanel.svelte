@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { 
     GameState, 
     params, 
@@ -8,31 +8,31 @@
   } from './lib/GameState';
   
   // Friction checkbox state 
-  let noFriction = $params.frictionMu === 0;
+  let noFriction: boolean = $params.frictionMu === 0;
   
   // When sliders change, update the GameState
-  function updateMass(value) {
+  function updateMass(value: string | number): void {
     GameState.updateParam('massKg', Number(value));
   }
   
-  function updateForce(value) {
+  function updateForce(value: string | number): void {
     GameState.updateParam('forceN', Number(value));
   }
   
-  function updateFriction(value) {
+  function updateFriction(value: string | number): void {
     GameState.updateParam('frictionMu', Number(value));
   }
   
-  function updateAngle(value) {
+  function updateAngle(value: string | number): void {
     GameState.updateParam('angleDeg', Number(value));
   }
   
-  function updateDuration(value) {
+  function updateDuration(value: string | number): void {
     GameState.updateParam('durationS', Number(value));
   }
   
   // Toggle friction on/off
-  function toggleFriction(checked) {
+  function toggleFriction(checked: boolean): void {
     noFriction = checked;
     if (noFriction) {
       GameState.updateParam('frictionMu', 0);
@@ -59,7 +59,7 @@
         max="10"
         step="0.1"
         value={$params.massKg}
-        on:input={(e) => updateMass(e.target.value)}
+        on:input={(e) => updateMass(e.currentTarget.value)}
         class="slider-root"
       />
     </div>
@@ -76,7 +76,7 @@
         max="30"
         step="0.5"
         value={$params.forceN}
-        on:input={(e) => updateForce(e.target.value)}
+        on:input={(e) => updateForce(e.currentTarget.value)}
         class="slider-root"
       />
     </div>
@@ -93,7 +93,7 @@
         max="0.5"
         step="0.01"
         value={$params.frictionMu}
-        on:input={(e) => updateFriction(e.target.value)}
+        on:input={(e) => updateFriction(e.currentTarget.value)}
         disabled={noFriction}
         class="slider-root {noFriction ? 'disabled' : ''}"
       />
@@ -104,7 +104,7 @@
           <input 
             type="checkbox" 
             checked={noFriction}
-            on:change={(e) => toggleFriction(e.target.checked)}
+            on:change={(e) => toggleFriction((e.currentTarget as HTMLInputElement).checked)}
           />
           No friction (μ = 0)
         </label>
@@ -123,7 +123,7 @@
         max="30"
         step="1"
         value={$params.angleDeg}
-        on:input={(e) => updateAngle(e.target.value)}
+        on:input={(e) => updateAngle(e.currentTarget.value)}
         class="slider-root"
       />
     </div>
@@ -140,7 +140,7 @@
         max="10"
         step="0.1"
         value={$params.durationS}
-        on:input={(e) => updateDuration(e.target.value)}
+        on:input={(e) => updateDuration(e.currentTarget.value)}
         class="slider-root"
       />
     </div>
@@ -248,16 +248,6 @@
     color: var(--color-text);
   }
   
-  .placeholder-content {
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .placeholder-content p {
-    margin: 0.5rem 0;
-  }
   
   /* Slider styles */
   .parameter-slider {
