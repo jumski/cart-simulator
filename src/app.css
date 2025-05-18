@@ -1,79 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
+  /* Color Variables */
+  --color-primary: #2D8CFF;
+  --color-red: #E53935;
+  --color-green: #43A047;
+  --color-blue: #1E88E5;
+  --color-gray: #9E9E9E;
+  --color-background: #F4F4F4;
+  --color-text: #333333;
+  --color-panel: #FFFFFF;
+  --color-outline: #004E9E;
+  --color-ramp: #DDDDDD;
+  
+  /* Common values */
+  --scene-width: 70%;
+  --panel-width: 30%;
+  --breakpoint: 1024px;
+  
+  /* Typography */
+  font-family: 'Roboto', sans-serif;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  line-height: 1.5;
+  color: var(--color-text);
+  
+  /* Rendering */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
+  background-color: var(--color-background);
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-.card {
-  padding: 2em;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+@media (max-width: 1024px) {
+  #app {
+    flex-direction: column;
+    height: auto;
+    overflow: auto;
+  }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Component-specific styles */
+.scene-container {
+  width: var(--scene-width);
+  height: 100%;
+  background-color: var(--color-background);
+}
+
+.panel-container {
+  width: var(--panel-width);
+  height: 100%;
+  background-color: var(--color-panel);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .scene-container,
+  .panel-container {
+    width: 100%;
+    height: auto;
+  }
+  
+  .scene-container {
+    aspect-ratio: 16/9;
+  }
+}
+
+/* Slider styles */
+.parameter-slider {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.parameter-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.parameter-value {
+  width: 60px;
+  text-align: right;
+  font-weight: bold;
+}
+
+/* Radio group styles */
+.view-mode-group {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin: 1rem 0;
+}
+
+.view-mode-item {
+  width: 80px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button styles */
+.button-primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  height: 48px;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.button-primary:hover {
+  opacity: 0.9;
+}
+
+.button-primary.paused {
+  background-color: var(--color-red);
+}
+
+.button-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  height: 48px;
+}
+
+.button-secondary:hover {
+  background-color: rgba(45, 140, 255, 0.05);
+}
+
+/* Section styles */
+.parameters-section,
+.mode-section,
+.controls-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
