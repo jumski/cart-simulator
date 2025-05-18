@@ -771,6 +771,129 @@
     }
   }
 
+  // Function to draw simplified force vectors preview in top right corner
+  function drawForcePreview(): void {
+    if (!ctx) return;
+    
+    // Get current force values
+    const forceValues = get(forces);
+    const parameters = get(params);
+    
+    // Preview area dimensions
+    const PREVIEW_WIDTH = 160;
+    const PREVIEW_HEIGHT = 130;
+    const PREVIEW_X = width - PREVIEW_WIDTH - 10; // 10px from right edge
+    const PREVIEW_Y = 10; // 10px from top
+    
+    // Draw preview background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.fillRect(PREVIEW_X, PREVIEW_Y, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(PREVIEW_X, PREVIEW_Y, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+    
+    // Draw title
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 12px Roboto';
+    ctx.textAlign = 'center';
+    ctx.fillText('Forces', PREVIEW_X + PREVIEW_WIDTH/2, PREVIEW_Y + 15);
+    
+    // Central point for vector origin
+    const centerX = PREVIEW_X + PREVIEW_WIDTH/2;
+    const centerY = PREVIEW_Y + 65; // Center point - down a bit from top
+    
+    // Small dot at the center point
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw force vectors
+    const VECTOR_SCALE = 1.0; // scale for better visibility
+    const ARROW_SIZE = 6;
+    
+    // Helper to draw force vectors
+    function drawForceVector(force: number, yOffset: number, color: string, label: string): void {
+      if (!ctx) return;
+      
+      const arrowLength = Math.abs(force) * VECTOR_SCALE;
+      const arrowDirection = Math.sign(force);
+      
+      // Skip very small forces, but always draw zero force as label
+      if (Math.abs(force) < 0.05) {
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px Roboto';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${label} = 0 N`, centerX + 10, centerY + yOffset);
+        return;
+      }
+      
+      // Start position
+      const startX = centerX;
+      const startY = centerY + yOffset;
+      
+      // End position
+      const endX = startX + arrowLength * arrowDirection;
+      const endY = startY;
+      
+      // Draw line
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, startY);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw arrow head
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - ARROW_SIZE * arrowDirection, endY - ARROW_SIZE/2);
+      ctx.lineTo(endX - ARROW_SIZE * arrowDirection, endY + ARROW_SIZE/2);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      
+      // Draw label with value
+      ctx.fillStyle = color;
+      ctx.font = 'bold 12px Roboto';
+      ctx.textBaseline = 'middle';
+      
+      if (arrowDirection > 0) {
+        ctx.textAlign = 'left';
+        ctx.fillText(`${label} = ${force.toFixed(1)} N`, endX + 8, endY);
+      } else {
+        ctx.textAlign = 'right';
+        ctx.fillText(`${label} = ${Math.abs(force).toFixed(1)} N`, endX - 8, endY);
+      }
+    }
+    
+    // Draw key information
+    ctx.fillStyle = '#000000';
+    ctx.font = '11px Roboto';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Mass: ${parameters.massKg.toFixed(1)} kg`, PREVIEW_X + 10, PREVIEW_Y + 30);
+    ctx.fillText(`Angle: ${parameters.angleDeg}°`, PREVIEW_X + 10, PREVIEW_Y + 45);
+    
+    ctx.textAlign = 'right';
+    ctx.fillText(`Acc: ${get(aMS2).toFixed(2)} m/s²`, PREVIEW_X + PREVIEW_WIDTH - 10, PREVIEW_Y + 30);
+    ctx.fillText(`μ: ${parameters.frictionMu.toFixed(2)}`, PREVIEW_X + PREVIEW_WIDTH - 10, PREVIEW_Y + 45);
+    
+    // Draw all force vectors with spacing
+    drawForceVector(forceValues.appliedN, -25, getCssVar('--color-green'), 'F'); // Applied Force
+    drawForceVector(forceValues.gravityParallelN, 0, '#9932CC', 'Fg'); // Gravity (purple)
+    drawForceVector(forceValues.frictionN, 25, getCssVar('--color-blue'), 'Ffr'); // Friction
+    
+    // Draw net force at bottom
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 12px Roboto';
+    ctx.textAlign = 'center';
+    ctx.fillText('Net Force:', centerX, centerY + 55);
+    
+    // Draw sum force vector
+    drawForceVector(forceValues.sumN, 70, getCssVar('--color-red'), 'ΣF'); // Sum Force
+  }
+
   // Main render function
   function render(): void {
     if (!ctx) return;
@@ -811,6 +934,9 @@
     } else if (currentMode === 'power') {
       drawPower();
     }
+    
+    // Always draw the force preview in top-right corner
+    drawForcePreview();
   }
   
   onMount(() => {

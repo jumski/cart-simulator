@@ -238,13 +238,54 @@ export const GameState: GameStateAPI = {
   
   // Update a parameter
   updateParam<K extends keyof Parameters>(key: K, value: Parameters[K]) {
-    gameState.update(state => ({
-      ...state,
-      params: {
-        ...state.params,
-        [key]: value
-      }
-    }));
+    gameState.update(state => {
+      // Create a new state with the updated parameter
+      const newState = {
+        ...state,
+        params: {
+          ...state.params,
+          [key]: value
+        }
+      };
+      
+      // Recalculate forces even when not running (for preview)
+      this.updateForces(newState);
+      
+      return newState;
+    });
+  },
+  
+  // Calculate forces based on parameters (used for preview)
+  updateForces(state: GameStateType): void {
+    // Calculate angle components
+    const sinAngle = Math.sin(state.params.angleDeg * Math.PI / 180);
+    const cosAngle = Math.cos(state.params.angleDeg * Math.PI / 180);
+    
+    // Apply force (as configured)
+    state.forces.appliedN = state.params.forceN;
+    
+    // Gravity parallel component (down the ramp)
+    // Only present when angle is non-zero
+    state.forces.gravityParallelN = state.params.massKg * GRAVITY * sinAngle;
+    
+    // Friction force
+    const frictionMagnitude = state.params.frictionMu * state.params.massKg * GRAVITY * cosAngle;
+    
+    // Static friction (we assume cart is stationary for preview)
+    const otherForces = state.forces.appliedN + state.forces.gravityParallelN;
+    if (Math.abs(otherForces) < frictionMagnitude) {
+      // Forces balanced by static friction
+      state.forces.frictionN = -otherForces;
+    } else {
+      // Max static friction opposite to net force direction
+      state.forces.frictionN = -Math.sign(otherForces) * frictionMagnitude;
+    }
+    
+    // Sum of forces
+    state.forces.sumN = state.forces.appliedN + state.forces.gravityParallelN + state.forces.frictionN;
+    
+    // Also update acceleration for preview
+    state.aMS2 = state.forces.sumN / state.params.massKg;
   },
   
   // Change visualization mode
@@ -260,16 +301,31 @@ export const GameState: GameStateAPI = {
     const currentState = get(gameState);
     if (currentState.params.forceN === 0 && currentState.params.angleDeg === 0) {
       console.log('Force is zero, setting to default value');
-      gameState.update(state => ({
-        ...state,
-        params: {
-          ...state.params,
-          forceN: 5.0  // Default force to ensure movement
-        }
-      }));
+      gameState.update(state => {
+        const newState = {
+          ...state,
+          params: {
+            ...state.params,
+            forceN: 5.0  // Default force to ensure movement
+          }
+        };
+        
+        // Update forces with new parameters
+        this.updateForces(newState);
+        
+        return newState;
+      });
     }
     
-    gameState.update(state => ({ ...state, running: true }));
+    // Update state and begin animation
+    gameState.update(state => {
+      const newState = { ...state, running: true };
+      
+      // Make sure forces are calculated before animation starts
+      this.updateForces(newState);
+      
+      return newState;
+    });
     
     // Start animation loop if not already running
     if (!animationFrameId) {
@@ -300,10 +356,17 @@ export const GameState: GameStateAPI = {
     }
     
     // Reset to initial state but keep current parameters and mode
-    gameState.update(state => ({
-      ...initialState,
-      params: { ...state.params },
-      mode: state.mode
-    }));
+    gameState.update(state => {
+      const newState = {
+        ...initialState,
+        params: { ...state.params },
+        mode: state.mode
+      };
+      
+      // Make sure forces are calculated for the preview
+      this.updateForces(newState);
+      
+      return newState;
+    });
   }
 };
