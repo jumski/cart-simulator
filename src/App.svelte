@@ -4,12 +4,16 @@
 </script>
 
 <main id="app">
-  <div class="scene-container">
-    <Scene />
-  </div>
-  
-  <div class="panel-container">
-    <ControlPanel />
+  <div class="main-container">
+    <div class="top-panel">
+      <div class="controls-area">
+        <ControlPanel />
+      </div>
+    </div>
+    
+    <div class="scene-container">
+      <Scene />
+    </div>
   </div>
 </main>
 
@@ -18,27 +22,45 @@
     width: 100%;
     height: 100vh;
     display: flex;
+    flex-direction: column;
+  }
+  
+  .main-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .top-panel {
+    width: 100%;
+    background-color: var(--color-panel);
+    display: flex;
     flex-direction: row;
+    justify-content: flex-end;
+    max-height: 180px;
   }
   
-  .scene-container {
-    min-height: 600px;
-    flex: 7;
-    background-color: var(--color-background);
-  }
-  
-  .panel-container {
-    flex: 3;
+  .controls-area {
+    width: 400px; /* Fixed width for controls */
+    min-width: 350px;
     background-color: var(--color-panel);
   }
   
+  .scene-container {
+    flex: 1;
+    min-height: 500px;
+    width: 100%;
+    background-color: var(--color-background);
+  }
+  
   @media (max-width: 1024px) {
-    main {
+    .top-panel {
       flex-direction: column;
-      height: auto;
+      max-height: none;
     }
     
-    .scene-container, .panel-container {
+    .controls-area {
       width: 100%;
     }
     

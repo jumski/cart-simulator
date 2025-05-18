@@ -45,7 +45,7 @@
 
 <div class="control-panel">
   <section class="parameters-section">
-    <h2 class="section-title">Parameters</h2>
+    <h2 class="section-title">Physics Controls</h2>
     
     <!-- Mass Slider -->
     <div class="parameter-slider">
@@ -141,8 +141,6 @@
   <!-- Visualization Mode section removed as all elements are now shown in a single comprehensive view -->
 
   <section class="controls-section">
-    <h2 class="section-title">Controls</h2>
-    
     <div class="controls-group">
       <!-- Start/Pause Button -->
       <button 
@@ -162,11 +160,6 @@
         RESET
       </button>
     </div>
-    
-    <!-- Timer Display -->
-    <div class="timer-display">
-      Time: <span class="timer-value">{$timeS.toFixed(1)} s</span>
-    </div>
   </section>
 </div>
 
@@ -175,44 +168,46 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 1rem;
+    padding: 0.5rem;
     box-sizing: border-box;
     overflow-y: auto;
   }
   
   section {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--color-gray);
   }
   
   section:last-child {
     border-bottom: none;
+    margin-bottom: 0;
   }
   
   .section-title {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     color: var(--color-text);
+    text-align: center;
   }
   
   
   /* Slider styles */
   .parameter-slider {
     width: 100%;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
   }
   
   .parameter-label {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
-    font-size: 14px;
+    margin-bottom: 0.25rem;
+    font-size: 12px;
   }
   
   .parameter-value {
-    width: 60px;
+    width: 50px;
     text-align: right;
     font-weight: bold;
   }
@@ -336,19 +331,20 @@
   /* Controls styles */
   .controls-group {
     display: flex;
-    gap: 20px;
-    margin-bottom: 1.5rem;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 0.5rem;
   }
   
   .button-primary {
-    width: 160px;
-    height: 48px;
+    width: 100px;
+    height: 36px;
     background-color: var(--color-primary);
     color: white;
     border: none;
     border-radius: 4px;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
   }
@@ -362,29 +358,19 @@
   }
   
   .button-secondary {
-    width: 120px;
-    height: 48px;
+    width: 80px;
+    height: 36px;
     background-color: transparent;
     color: var(--color-primary);
     border: 2px solid var(--color-primary);
     border-radius: 4px;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
   }
   
   .button-secondary:hover {
     background-color: rgba(45, 140, 255, 0.05);
-  }
-  
-  .timer-display {
-    margin-top: 1rem;
-    font-size: 16px;
-  }
-  
-  .timer-value {
-    font-weight: 700;
-    color: var(--color-primary);
   }
 </style>

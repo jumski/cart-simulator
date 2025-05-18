@@ -30,10 +30,10 @@
   
   // Update position constants based on canvas size
   function updatePositionConstants() {
-    // Push the track down further to make room for the larger dashboard (170px from dashboard bottom)
-    TRACK_Y = Math.min(550, height * 0.65 + 180); // Y position of the track
-    TRACK_START_X = 50; // Start track 50px from left edge for better visibility
-    TRACK_END_X = width - 50; // End track 50px from right edge
+    // Position the track optimally - dashboard is more compact now
+    TRACK_Y = Math.min(500, height * 0.5 + 80); // Y position of the track, moved up since dashboard is smaller
+    TRACK_START_X = 20; // Track starts closer to the left edge for more horizontal space
+    TRACK_END_X = width - 20; // Track extends closer to right edge for more horizontal space
     console.log('Updated track positions:', { TRACK_Y, TRACK_START_X, TRACK_END_X, width, height });
   }
   
@@ -294,16 +294,8 @@
     }
   }
   
-  // Function to draw motion visualization (velocity arrow and graphs)
-  function drawMotion(): void {
-    if (!ctx) return;
-    
-    // Draw velocity arrow
-    drawVelocityArrow();
-    
-    // Draw motion graphs
-    drawMotionGraphs();
-  }
+  // Function has been simplified - only keeping the velocity arrow
+  // Graphs have been removed as requested
   
   // Function to draw velocity arrow
   function drawVelocityArrow(): void {
@@ -369,448 +361,11 @@
     }
   }
   
-  // Function to draw a simplified, smaller motion graph
-  function drawSimplifiedMotionGraph(): void {
-    if (!ctx) return;
-    
-    // Graph dimensions and position - more compact
-    const GRAPH_WIDTH = 400;
-    const GRAPH_HEIGHT = 100;
-    const GRAPH_Y = TRACK_Y + 50; // Below the track
-    const GRAPH_X = width / 2 - GRAPH_WIDTH / 2; // Centered horizontally
-    
-    // Time constants
-    const MAX_TIME = 5; // seconds to show (reduced for better visibility)
-    const TIME_SCALE = GRAPH_WIDTH / MAX_TIME; // pixels per second
-    
-    // Create a reference that TypeScript knows is non-null
-    const context = ctx!;
-    
-    // Draw graph background
-    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    context.strokeStyle = '#000000';
-    context.lineWidth = 1;
-    context.strokeRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    
-    // Graph title
-    context.fillStyle = '#000000';
-    context.font = 'bold 14px Roboto';
-    context.textAlign = 'center';
-    context.fillText('Motion Graph', GRAPH_X + GRAPH_WIDTH/2, GRAPH_Y - 5);
-    
-    // Draw time axis
-    const Y_AXIS = GRAPH_Y + GRAPH_HEIGHT / 2;
-    context.beginPath();
-    context.moveTo(GRAPH_X, Y_AXIS);
-    context.lineTo(GRAPH_X + GRAPH_WIDTH, Y_AXIS);
-    context.strokeStyle = '#888888';
-    context.lineWidth = 1;
-    context.stroke();
-    
-    // Draw time markers
-    for (let t = 0; t <= MAX_TIME; t += 1) {
-      const x = GRAPH_X + t * TIME_SCALE;
-      
-      // Draw tick
-      context.beginPath();
-      context.moveTo(x, Y_AXIS - 5);
-      context.lineTo(x, Y_AXIS + 5);
-      context.strokeStyle = '#888888';
-      context.stroke();
-      
-      // Draw all time labels
-      context.fillStyle = '#333333';
-      context.font = '10px Roboto';
-      context.textAlign = 'center';
-      context.fillText(`${t}s`, x, Y_AXIS + 15);
-    }
-    
-    // Get current values
-    const time = get(timeS);
-    const position = get(xM);
-    const velocity = get(vMS);
-    const acceleration = get(aMS2);
-    
-    // Skip if simulation hasn't started yet
-    if (time <= 0) return;
-    
-    // Draw all three graphs simultaneously, with a legend
-    // Calculate scales
-    const POSITION_SCALE = GRAPH_HEIGHT / 3 / 10; // 10m max range
-    const VELOCITY_SCALE = GRAPH_HEIGHT / 3 / 5; // 5m/s max range
-    const ACCELERATION_SCALE = GRAPH_HEIGHT / 3 / 2; // 2m/s² max range
-    
-    // Draw position graph (x-t)
-    context.beginPath();
-    context.moveTo(GRAPH_X, Y_AXIS - position * POSITION_SCALE);
-    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - position * POSITION_SCALE);
-    context.strokeStyle = getCssVar('--color-green');
-    context.lineWidth = 2;
-    context.stroke();
-    
-    // Draw velocity graph (v-t)
-    context.beginPath();
-    context.moveTo(GRAPH_X, Y_AXIS - 0);
-    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - velocity * VELOCITY_SCALE);
-    context.strokeStyle = getCssVar('--color-blue');
-    context.lineWidth = 2;
-    context.stroke();
-    
-    // Draw acceleration graph (a-t)
-    context.beginPath();
-    context.moveTo(GRAPH_X, Y_AXIS - 0);
-    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - acceleration * ACCELERATION_SCALE);
-    context.strokeStyle = getCssVar('--color-red');
-    context.lineWidth = 2;
-    context.stroke();
-    
-    // Draw legend
-    const legendX = GRAPH_X + 10;
-    const legendY = GRAPH_Y + 20;
-    const legendSpacing = 25;
-    
-    // Position legend item
-    context.strokeStyle = getCssVar('--color-green');
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(legendX, legendY);
-    context.lineTo(legendX + 20, legendY);
-    context.stroke();
-    context.fillStyle = getCssVar('--color-green');
-    context.font = '12px Roboto';
-    context.textAlign = 'left';
-    context.fillText('Position', legendX + 25, legendY + 4);
-    
-    // Velocity legend item
-    context.strokeStyle = getCssVar('--color-blue');
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(legendX, legendY + legendSpacing);
-    context.lineTo(legendX + 20, legendY + legendSpacing);
-    context.stroke();
-    context.fillStyle = getCssVar('--color-blue');
-    context.font = '12px Roboto';
-    context.textAlign = 'left';
-    context.fillText('Velocity', legendX + 25, legendY + legendSpacing + 4);
-    
-    // Acceleration legend item
-    context.strokeStyle = getCssVar('--color-red');
-    context.lineWidth = 2;
-    context.beginPath();
-    context.moveTo(legendX, legendY + 2 * legendSpacing);
-    context.lineTo(legendX + 20, legendY + 2 * legendSpacing);
-    context.stroke();
-    context.fillStyle = getCssVar('--color-red');
-    context.font = '12px Roboto';
-    context.textAlign = 'left';
-    context.fillText('Acceleration', legendX + 25, legendY + 2 * legendSpacing + 4);
-  }
+  // Graph functions removed as requested to keep the visualization clean and focused
   
-  // Function to draw energy visualization
-  function drawEnergy(): void {
-    if (!ctx) return;
-    
-    // Constants for bar charts
-    const BAR_WIDTH = 60;
-    const MAX_HEIGHT = 100; // 100px = 200J
-    const ENERGY_SCALE = 0.5; // px per Joule
-    const BAR_SPACING = 80;
-    
-    // Get energy values from store
-    const position = get(xM);
-    const energyValues = get(energy);
-    
-    // Calculate cart center position (for bar placement)
-    const cartXPixels = position * SCALE_FACTOR;
-    const barY = TRACK_Y - CART_HEIGHT - 20 - MAX_HEIGHT; // Above the cart
-    
-    // Calculate bar heights (clamped to MAX_HEIGHT)
-    const kineticHeight = Math.min(energyValues.EkJ * ENERGY_SCALE, MAX_HEIGHT);
-    const potentialHeight = Math.min(energyValues.EpJ * ENERGY_SCALE, MAX_HEIGHT);
-    const workHeight = Math.min(energyValues.WJ * ENERGY_SCALE, MAX_HEIGHT);
-    
-    // Draw kinetic energy bar
-    const kineticX = cartXPixels - BAR_SPACING;
-    drawEnergyBar(kineticX, barY, BAR_WIDTH, kineticHeight, getCssVar('--color-red'), 'Ek', energyValues.EkJ);
-    
-    // Draw potential energy bar
-    const potentialX = cartXPixels;
-    drawEnergyBar(potentialX, barY, BAR_WIDTH, potentialHeight, getCssVar('--color-green'), 'Ep', energyValues.EpJ);
-    
-    // Draw work bar
-    const workX = cartXPixels + BAR_SPACING;
-    drawEnergyBar(workX, barY, BAR_WIDTH, workHeight, getCssVar('--color-blue'), 'W', energyValues.WJ);
-    
-    // Draw scale
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(kineticX - 20, barY + MAX_HEIGHT);
-    ctx.lineTo(workX + BAR_WIDTH + 20, barY + MAX_HEIGHT);
-    ctx.stroke();
-    
-    // Draw scale markers
-    for (let j = 0; j <= 200; j += 50) {
-      const y = barY + MAX_HEIGHT - j * ENERGY_SCALE;
-      
-      ctx.beginPath();
-      ctx.moveTo(kineticX - 5, y);
-      ctx.lineTo(kineticX, y);
-      ctx.stroke();
-      
-      ctx.fillStyle = '#000000';
-      ctx.font = '12px Roboto';
-      ctx.textAlign = 'right';
-      ctx.fillText(`${j} J`, kineticX - 8, y + 4);
-    }
-  }
-  
-  // Helper function to draw an energy bar
-  function drawEnergyBar(x: number, y: number, width: number, height: number, color: string, label: string, value: number): void {
-    if (!ctx) return;
-    
-    // Draw bar background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(x, y, width, MAX_HEIGHT);
-    
-    // Draw the energy bar
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y + MAX_HEIGHT - height, width, height);
-    
-    // Draw border
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, width, MAX_HEIGHT);
-    
-    // Draw label
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 14px Roboto';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x + width / 2, y - 20);
-    
-    // Draw value
-    ctx.fillText(`${value.toFixed(1)} J`, x + width / 2, y - 5);
-  }
-  
-  // Function to draw power visualization with meter and graph
-  function drawPower(): void {
-    if (!ctx) return;
-    
-    // Draw digital power display
-    drawPowerDigitalDisplay();
-    
-    // Draw analog power meter
-    drawPowerMeter();
-    
-    // Draw power-time graph
-    drawPowerGraph();
-  }
-  
-  // Function to draw digital power display
-  function drawPowerDigitalDisplay(): void {
-    if (!ctx) return;
-    
-    // Position of the display
-    const x = 100;
-    const y = 100;
-    
-    // Draw display background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.fillRect(x, y, 150, 50);
-    ctx.strokeStyle = getCssVar('--color-primary');
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, 150, 50);
-    
-    // Get power values from store
-    const powerValues = get(power);
-    
-    // Draw power text
-    ctx.fillStyle = getCssVar('--color-green');
-    ctx.font = 'bold 24px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`P = ${Math.abs(powerValues.instantW).toFixed(0)} W`, x + 75, y + 25);
-  }
-  
-  // Function to draw power meter
-  function drawPowerMeter(): void {
-    if (!ctx) return;
-    
-    // Meter constants
-    const METER_X = 300;
-    const METER_Y = 100;
-    const METER_RADIUS = 60;
-    const MAX_POWER = 300; // Watts
-    
-    // Get power values from store
-    const powerValues = get(power);
-    
-    // Calculate power percentage (-1 to 1)
-    const powerPercent = Math.max(-1, Math.min(1, powerValues.instantW / MAX_POWER));
-    
-    // Draw meter background
-    ctx.beginPath();
-    ctx.arc(METER_X, METER_Y, METER_RADIUS, 0, Math.PI, true);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fill();
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Draw tick marks and labels
-    for (let i = -5; i <= 5; i++) {
-      // Angle in radians (-180° to 0°)
-      const angle = Math.PI - (i / 5) * Math.PI;
-      const innerRadius = METER_RADIUS - 10;
-      const outerRadius = METER_RADIUS;
-      
-      // Calculate tick positions
-      const innerX = METER_X + innerRadius * Math.cos(angle);
-      const innerY = METER_Y + innerRadius * Math.sin(angle);
-      const outerX = METER_X + outerRadius * Math.cos(angle);
-      const outerY = METER_Y + outerRadius * Math.sin(angle);
-      
-      // Draw tick line
-      ctx.beginPath();
-      ctx.moveTo(innerX, innerY);
-      ctx.lineTo(outerX, outerY);
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      
-      // Draw label
-      if (i % 2 === 0) {
-        const labelX = METER_X + (outerRadius + 15) * Math.cos(angle);
-        const labelY = METER_Y + (outerRadius + 15) * Math.sin(angle);
-        
-        ctx.fillStyle = '#000000';
-        ctx.font = '12px Roboto';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${Math.abs(i * MAX_POWER / 5)}W`, labelX, labelY);
-      }
-    }
-    
-    // Draw needle
-    const needleAngle = Math.PI - powerPercent * Math.PI;
-    const needleLength = METER_RADIUS - 10;
-    
-    ctx.beginPath();
-    ctx.moveTo(METER_X, METER_Y);
-    ctx.lineTo(
-      METER_X + needleLength * Math.cos(needleAngle),
-      METER_Y + needleLength * Math.sin(needleAngle)
-    );
-    ctx.strokeStyle = getCssVar('--color-red');
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    // Draw needle pivot
-    ctx.beginPath();
-    ctx.arc(METER_X, METER_Y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = '#000000';
-    ctx.fill();
-  }
-  
-  // Function to draw power-time graph
-  function drawPowerGraph(): void {
-    if (!ctx) return;
-    
-    // Graph dimensions and position
-    const GRAPH_WIDTH = 800;
-    const GRAPH_HEIGHT = 120;
-    const GRAPH_Y = TRACK_Y + 50; // Below the track
-    const GRAPH_X = 0;
-    
-    // Power and time constants
-    const MAX_POWER = 300; // Watts
-    const POWER_SCALE = GRAPH_HEIGHT / (2 * MAX_POWER); // pixels per Watt
-    const MAX_TIME = 10; // seconds to show
-    const TIME_SCALE = GRAPH_WIDTH / MAX_TIME; // pixels per second
-    
-    // Draw graph background
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
-    
-    // Draw power axis (horizontal line at middle)
-    const Y_AXIS = GRAPH_Y + GRAPH_HEIGHT / 2;
-    ctx.beginPath();
-    ctx.moveTo(GRAPH_X, Y_AXIS);
-    ctx.lineTo(GRAPH_X + GRAPH_WIDTH, Y_AXIS);
-    ctx.strokeStyle = '#888888';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Draw time markers
-    for (let t = 0; t <= MAX_TIME; t += 1) {
-      const x = GRAPH_X + t * TIME_SCALE;
-      
-      // Draw tick
-      ctx.beginPath();
-      ctx.moveTo(x, Y_AXIS - 5);
-      ctx.lineTo(x, Y_AXIS + 5);
-      ctx.strokeStyle = '#888888';
-      ctx.stroke();
-      
-      // Draw label every 2 seconds
-      if (t % 2 === 0) {
-        ctx.fillStyle = '#333333';
-        ctx.font = '12px Roboto';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${t}s`, x, Y_AXIS + 20);
-      }
-    }
-    
-    // Draw power labels
-    for (let p = -MAX_POWER; p <= MAX_POWER; p += MAX_POWER) {
-      const y = Y_AXIS - p * POWER_SCALE;
-      
-      // Draw tick
-      ctx.beginPath();
-      ctx.moveTo(GRAPH_X, y);
-      ctx.lineTo(GRAPH_X + 10, y);
-      ctx.strokeStyle = '#888888';
-      ctx.stroke();
-      
-      // Draw label
-      ctx.fillStyle = '#333333';
-      ctx.font = '12px Roboto';
-      ctx.textAlign = 'left';
-      ctx.fillText(`${p}W`, GRAPH_X + 15, y);
-    }
-    
-    // Get power values from store
-    const powerValues = get(power);
-    
-    // Draw power graph from logged data points
-    if (powerValues.log.length > 1) {
-      ctx.beginPath();
-      
-      // Start from the first point
-      const firstPoint = powerValues.log[0];
-      ctx.moveTo(
-        GRAPH_X + firstPoint.t * TIME_SCALE, 
-        Y_AXIS - firstPoint.P * POWER_SCALE
-      );
-      
-      // Connect all points
-      for (let i = 1; i < powerValues.log.length; i++) {
-        const point = powerValues.log[i];
-        ctx.lineTo(
-          GRAPH_X + point.t * TIME_SCALE, 
-          Y_AXIS - point.P * POWER_SCALE
-        );
-      }
-      
-      ctx.strokeStyle = getCssVar('--color-green');
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
+  // Energy and power visualization functions have been removed
+  // Only keeping force vectors and velocity arrow visualization
+  // Circular gauges for speed and power are shown in the dashboard
 
   // Force preview function removed as requested
 
@@ -828,28 +383,32 @@
     const powerValues = get(power);
     const time = get(timeS);
     
-    // Dashboard dimensions - increase height for circular gauges
+    // Dashboard dimensions - keep to the left side of the screen, leave room for controls on right
     const DASH_HEIGHT = 150;
-    const DASH_WIDTH = width - 20; // 10px margin on each side
+    const DASH_WIDTH = width - 420; // Leave space for controls panel
     const DASH_X = 10;
     const DASH_Y = 10;
     
-    // Draw dashboard background
-    ctx.fillStyle = 'rgba(245, 245, 250, 0.9)';
+    // Draw dashboard background with a subtle gradient
+    const dashGradient = ctx.createLinearGradient(DASH_X, DASH_Y, DASH_X, DASH_Y + DASH_HEIGHT);
+    dashGradient.addColorStop(0, 'rgba(240, 240, 245, 0.9)');
+    dashGradient.addColorStop(1, 'rgba(230, 230, 240, 0.9)');
+    
+    ctx.fillStyle = dashGradient;
     ctx.fillRect(DASH_X, DASH_Y, DASH_WIDTH, DASH_HEIGHT);
-    ctx.strokeStyle = '#333333';
+    
+    // Subtle border
+    ctx.strokeStyle = '#cccccc';
     ctx.lineWidth = 1;
     ctx.strokeRect(DASH_X, DASH_Y, DASH_WIDTH, DASH_HEIGHT);
     
-    // Draw title
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 16px Roboto';
-    ctx.textAlign = 'center';
-    ctx.fillText('PHYSICS DASHBOARD', DASH_X + DASH_WIDTH/2, DASH_Y + 15);
+    // Add small label in corner to identify dashboard
+    ctx.fillStyle = '#777777';
+    ctx.font = '10px Roboto';
+    ctx.textAlign = 'left';
+    ctx.fillText('GAUGES', DASH_X + 5, DASH_Y + 12);
     
-    // Draw subtitle
-    ctx.font = '12px Roboto';
-    ctx.fillText('Speed and power are shown as car-style gauges', DASH_X + DASH_WIDTH/2, DASH_Y + 32);
+    // No title - maximizing space
     
     // Draw separator line
     ctx.beginPath();
@@ -863,27 +422,28 @@
     const gaugeWidth = DASH_WIDTH / numGauges;
     const gaugeY = DASH_Y + 45;
     
-    // Function to draw a linear gauge with a value
+    // Function to draw a more compact linear gauge
     function drawLinearGauge(x: number, y: number, width: number, label: string, value: number, unit: string, minVal: number, maxVal: number, color: string): void {
       if (!ctx) return;
       
-      // Draw label
+      // Compact layout with label and value on the same line
+      // Left side label
       ctx.fillStyle = '#000000';
-      ctx.font = 'bold 12px Roboto';
+      ctx.font = '11px Roboto';
       ctx.textAlign = 'left';
       ctx.fillText(label, x, y);
       
-      // Draw value
-      ctx.font = 'bold 14px Roboto';
+      // Right side value
+      ctx.font = 'bold 11px Roboto';
       ctx.fillStyle = color;
       ctx.textAlign = 'right';
-      ctx.fillText(value.toFixed(2) + ' ' + unit, x + width * 0.95, y);
+      ctx.fillText(value.toFixed(1) + ' ' + unit, x + width - 5, y);
       
-      // Draw gauge background
-      const gaugeLength = width * 0.9;
-      const gaugeHeight = 6;
+      // Draw gauge background - tighter placement
+      const gaugeLength = width - 5;
+      const gaugeHeight = 5; // Thinner gauge
       const gaugeX = x;
-      const gaugeY2 = y + 10;
+      const gaugeY2 = y + 7; // Closer to the label
       
       ctx.fillStyle = '#eeeeee';
       ctx.fillRect(gaugeX, gaugeY2, gaugeLength, gaugeHeight);
@@ -898,16 +458,16 @@
       
       // Draw gauge border
       ctx.strokeStyle = '#999999';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.5; // Thinner border
       ctx.strokeRect(gaugeX, gaugeY2, gaugeLength, gaugeHeight);
       
-      // Draw min/max values
-      ctx.font = '9px Roboto';
+      // More compact min/max values
+      ctx.font = '8px Roboto';
       ctx.fillStyle = '#666666';
       ctx.textAlign = 'left';
-      ctx.fillText(minVal.toString(), gaugeX, gaugeY2 + gaugeHeight + 10);
+      ctx.fillText(minVal.toString(), gaugeX, gaugeY2 + gaugeHeight + 7);
       ctx.textAlign = 'right';
-      ctx.fillText(maxVal.toString(), gaugeX + gaugeLength, gaugeY2 + gaugeHeight + 10);
+      ctx.fillText(maxVal.toString(), gaugeX + gaugeLength, gaugeY2 + gaugeHeight + 7);
     }
     
     // Function to draw a circular car-style gauge
@@ -923,27 +483,68 @@
       const normalizedValue = Math.min(1, Math.max(0, (value - minVal) / (maxVal - minVal)));
       const valueAngle = startAngle + normalizedValue * totalAngle;
       
-      // Draw outer circle (gauge background)
+      // Draw gauge background (filled semi-circle)
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 5, startAngle, endAngle);
+      ctx.lineTo(x, y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(240, 240, 240, 0.9)';
+      ctx.fill();
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      
+      // Draw outer circle (gauge track)
       ctx.beginPath();
       ctx.arc(x, y, radius, startAngle, endAngle);
-      ctx.lineWidth = 10;
+      ctx.lineWidth = 12;
       ctx.strokeStyle = '#eeeeee';
       ctx.stroke();
       
-      // Draw value arc
+      // Draw inner gradient for 3D effect
+      ctx.beginPath();
+      ctx.arc(x, y, radius - 6, startAngle, endAngle);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#dddddd';
+      ctx.stroke();
+      
+      // Draw value arc with gradient
+      const gradient = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, shadeColor(color, -20)); // Darker version for gradient effect
+      
       ctx.beginPath();
       ctx.arc(x, y, radius, startAngle, valueAngle);
       ctx.lineWidth = 12;
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = gradient;
+      ctx.stroke();
+      
+      // Draw bezel around gauge
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 10, startAngle, endAngle);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#aaaaaa';
       ctx.stroke();
       
       // Draw center cap
       ctx.beginPath();
-      ctx.arc(x, y, radius * 0.1, 0, Math.PI * 2);
+      ctx.arc(x, y, radius * 0.15, 0, Math.PI * 2);
       ctx.fillStyle = '#333333';
       ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       
-      // Draw gauge needle
+      // Draw gauge needle with shadow effect
+      // First draw shadow
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + 2); // Offset for shadow
+      ctx.lineTo(x + Math.cos(valueAngle) * radius * 0.95 + 2, y + Math.sin(valueAngle) * radius * 0.95 + 2);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.stroke();
+      
+      // Then draw needle
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + Math.cos(valueAngle) * radius * 0.95, y + Math.sin(valueAngle) * radius * 0.95);
@@ -952,11 +553,11 @@
       ctx.stroke();
       
       // Draw tick marks and numbers
-      const numTicks = 6; // 6 segments for 5 tick marks
+      const numTicks = 10; // More ticks for finer gradation
       
       for (let i = 0; i <= numTicks; i++) {
         const tickAngle = startAngle + (i / numTicks) * totalAngle;
-        const tickInnerRadius = radius * 0.8;
+        const tickInnerRadius = i % 2 === 0 ? radius * 0.78 : radius * 0.85; // Major vs minor ticks
         const tickOuterRadius = radius * 1.05;
         const textRadius = radius * 1.2;
         
@@ -964,12 +565,12 @@
         ctx.beginPath();
         ctx.moveTo(x + Math.cos(tickAngle) * tickInnerRadius, y + Math.sin(tickAngle) * tickInnerRadius);
         ctx.lineTo(x + Math.cos(tickAngle) * tickOuterRadius, y + Math.sin(tickAngle) * tickOuterRadius);
-        ctx.lineWidth = i % (numTicks/2) === 0 ? 3 : 1; // Thicker lines for major ticks
+        ctx.lineWidth = i % 2 === 0 ? 2 : 1; // Thicker lines for major ticks
         ctx.strokeStyle = '#333333';
         ctx.stroke();
         
         // Draw tick value for major ticks
-        if (i % (numTicks/2) === 0) {
+        if (i % 2 === 0) {
           const tickValue = minVal + (i / numTicks) * (maxVal - minVal);
           ctx.fillStyle = '#333333';
           ctx.font = 'bold 12px Roboto';
@@ -983,63 +584,109 @@
         }
       }
       
-      // Draw label
+      // Draw decorative ring for car-like appearance
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 7, startAngle - 0.1, endAngle + 0.1);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#555555';
+      ctx.stroke();
+      
+      // Draw label in more prominent position
       ctx.fillStyle = '#000000';
-      ctx.font = 'bold 14px Roboto';
+      ctx.font = 'bold 16px Roboto';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(label, x, y + radius * 0.65);
+      ctx.fillText(label, x, y + radius * 0.6);
       
-      // Draw value
+      // Draw value in a digital display style box
+      // Draw box background
+      const valueBoxWidth = 80;
+      const valueBoxHeight = 30;
+      const valueBoxX = x - valueBoxWidth / 2;
+      const valueBoxY = y + radius * 0.8;
+      
+      // Draw box with subtle gradient
+      const boxGradient = ctx.createLinearGradient(valueBoxX, valueBoxY, valueBoxX, valueBoxY + valueBoxHeight);
+      boxGradient.addColorStop(0, '#f8f8f8');
+      boxGradient.addColorStop(1, '#e0e0e0');
+      
+      ctx.fillStyle = boxGradient;
+      ctx.fillRect(valueBoxX, valueBoxY, valueBoxWidth, valueBoxHeight);
+      ctx.strokeStyle = '#aaaaaa';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(valueBoxX, valueBoxY, valueBoxWidth, valueBoxHeight);
+      
+      // Draw value text
       ctx.fillStyle = color;
-      ctx.font = 'bold 18px Roboto';
-      ctx.fillText(value.toFixed(1) + ' ' + unit, x, y + radius * 0.85);
+      ctx.font = 'bold 18px monospace'; // Monospace for digital look
+      ctx.fillText(value.toFixed(1) + ' ' + unit, x, valueBoxY + valueBoxHeight/2 + 1);
     }
     
-    // First create a layout with the circular gauges for speed and power
-    // Draw circular gauges for speed and power
-    const DASH_THIRD = DASH_WIDTH / 3;
+    // Helper function to darken/lighten a color
+    function shadeColor(color: string, percent: number): string {
+      // Handle CSS variable
+      if (color.startsWith('var(')) {
+        color = getCssVar(color.slice(4, -1));
+      }
+      
+      let R = parseInt(color.substring(1, 3), 16);
+      let G = parseInt(color.substring(3, 5), 16);
+      let B = parseInt(color.substring(5, 7), 16);
+
+      R = Math.floor(R * (100 + percent) / 100);
+      G = Math.floor(G * (100 + percent) / 100);
+      B = Math.floor(B * (100 + percent) / 100);
+
+      R = (R < 255) ? R : 255;  
+      G = (G < 255) ? G : 255;  
+      B = (B < 255) ? B : 255;  
+
+      const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
+      const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
+      const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
+
+      return "#" + RR + GG + BB;
+    }
     
-    // Draw speedometer on the left side
-    drawCircularGauge(DASH_X + DASH_THIRD * 0.5, DASH_Y + DASH_HEIGHT/2, 
-                       DASH_HEIGHT * 0.4, Math.abs(velocity), 0, 15, 
+    // Create a more compact layout
+    // Draw circular gauges for speed and power side by side
+    const GAUGE_SPACING = DASH_WIDTH / 5;
+    const GAUGE_RADIUS = Math.min(DASH_HEIGHT * 0.35, GAUGE_SPACING * 0.8);
+    
+    // Left side speedometer
+    drawCircularGauge(DASH_X + GAUGE_SPACING, DASH_Y + DASH_HEIGHT/2 - 5, 
+                       GAUGE_RADIUS, Math.abs(velocity), 0, 15, 
                        "Speed", "m/s", getCssVar('--color-blue'));
     
-    // Draw power meter on the right side
-    drawCircularGauge(DASH_X + DASH_WIDTH - DASH_THIRD * 0.5, DASH_Y + DASH_HEIGHT/2, 
-                      DASH_HEIGHT * 0.4, Math.abs(powerValues.instantW), 0, 300, 
+    // Right side power meter
+    drawCircularGauge(DASH_X + GAUGE_SPACING * 2.5, DASH_Y + DASH_HEIGHT/2 - 5, 
+                      GAUGE_RADIUS, Math.abs(powerValues.instantW), 0, 300, 
                       "Power", "W", 'orange');
     
-    // Draw remaining linear gauges in the middle section
-    const middleX = DASH_X + DASH_THIRD;
-    const middleWidth = DASH_THIRD;
+    // Draw remaining linear gauges to the right
+    const lineGaugeX = DASH_X + GAUGE_SPACING * 4;
+    const lineGaugeWidth = DASH_WIDTH - GAUGE_SPACING * 4 - 10;
     
     // Draw different sets of gauges depending on friction state
+    const gaugeSpacing = 25; // Vertical spacing between gauges
+    const gaugeStartY = DASH_Y + 30;
+    
     if (parameters.frictionMu > 0) {
       // When friction is enabled, show all forces
-      // Linear gauges in the middle section
-      drawLinearGauge(middleX, DASH_Y + 30, middleWidth, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
-      drawLinearGauge(middleX, DASH_Y + 50, middleWidth, "Friction", Math.abs(forceValues.frictionN), "N", 0, 10, getCssVar('--color-blue'));
-      drawLinearGauge(middleX, DASH_Y + 70, middleWidth, "Net Force", forceValues.sumN, "N", 0, 30, getCssVar('--color-red')); 
+      // Vertical stack of linear gauges on the right side
+      drawLinearGauge(lineGaugeX, gaugeStartY, lineGaugeWidth, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing, lineGaugeWidth, "Friction", Math.abs(forceValues.frictionN), "N", 0, 10, getCssVar('--color-blue'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing * 2, lineGaugeWidth, "Net Force", forceValues.sumN, "N", 0, 30, getCssVar('--color-red'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing * 3, lineGaugeWidth, "Accel.", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
     } else {
       // When no friction, show fewer gauges
-      // Linear gauges in the middle section
-      drawLinearGauge(middleX, DASH_Y + 30, middleWidth, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
-      drawLinearGauge(middleX, DASH_Y + 50, middleWidth, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
-      drawLinearGauge(middleX, DASH_Y + 70, middleWidth, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
+      drawLinearGauge(lineGaugeX, gaugeStartY, lineGaugeWidth, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing, lineGaugeWidth, "Accel.", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing * 2, lineGaugeWidth, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
+      drawLinearGauge(lineGaugeX, gaugeStartY + gaugeSpacing * 3, lineGaugeWidth, "Energy", energyValues.EkJ, "J", 0, 100, 'purple');
     }
     
-    // Draw simulation time 
-    ctx.font = '12px Roboto';
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'right';
-    ctx.fillText(`Time: ${time.toFixed(2)} s`, DASH_X + DASH_WIDTH - 10, DASH_Y + 75);
-    
-    // Draw simulation status
-    const isRunning = get(running);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = isRunning ? getCssVar('--color-green') : getCssVar('--color-red');
-    ctx.fillText(`Status: ${isRunning ? 'Running' : 'Paused'}`, DASH_X + 10, DASH_Y + 75);
+    // Time and status removed to save space
   }
   
   // Main render function
@@ -1074,7 +721,7 @@
     drawCart(get(xM));
     
     // Draw all visualization elements in one comprehensive view
-    // Priority to forces visualization, then other elements that don't conflict
+    // Simplified to focus only on the most important visual elements
     
     // Draw force vectors (from forces mode)
     drawForces();
@@ -1084,10 +731,7 @@
       drawVelocityArrow();
     }
     
-    // Draw small motion graph below the track
-    drawSimplifiedMotionGraph();
-    
-    // Force preview has been removed
+    // Graphs have been removed to keep the visualization clean and focused
   }
   
   onMount(() => {
