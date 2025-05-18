@@ -106,9 +106,16 @@
             checked={noFriction}
             on:change={(e) => toggleFriction((e.currentTarget as HTMLInputElement).checked)}
           />
-          No friction (μ = 0)
+          No friction (μ = 0) — simplified mode
         </label>
       </div>
+      
+      <!-- Information about what happens with no friction -->
+      {#if noFriction}
+        <div class="info-note">
+          In simplified mode, only applied force is shown
+        </div>
+      {/if}
     </div>
     
     <!-- Angle is removed, always flat (0°) -->
@@ -326,6 +333,17 @@
   
   .checkbox-container input {
     accent-color: var(--color-primary);
+  }
+  
+  /* Info note style */
+  .info-note {
+    margin-top: 5px;
+    padding: 5px 10px;
+    background-color: rgba(0, 200, 0, 0.1);
+    border-left: 3px solid var(--color-green);
+    font-size: 12px;
+    line-height: 1.3;
+    border-radius: 2px;
   }
   
   /* View mode styles */

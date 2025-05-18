@@ -195,40 +195,47 @@
   function drawForces(): void {
     if (!ctx) return;
     
-    // Constants for vector drawing
-    const FORCE_SCALE = 5; // pixels per Newton
-    const ARROW_HEAD_SIZE = 10;
+    // Constants for vector drawing - much larger scale for better visibility
+    const FORCE_SCALE = 25; // pixels per Newton (increased from 15)
+    const ARROW_HEAD_SIZE = 15; // larger arrow head
+    const MIN_ARROW_LENGTH = 60; // minimum length for better visibility of small forces
     
-    // Calculate cart center position (for vector origin)
-    const cartXPixels = get(xM) * SCALE_FACTOR;
-    const cartYCenter = TRACK_Y - CART_HEIGHT / 2;
+    // Calculate cart position (center of the cart)
+    const cartXPixels = TRACK_START_X + 100 + get(xM) * SCALE_FACTOR;
+    const cartCenterX = cartXPixels;
+    const vectorOriginY = TRACK_Y - CART_HEIGHT - 80; // 80px above the cart for better visibility
     
     // Helper function to draw a force vector
     function drawForceVector(force: number, yOffset: number, color: string, label: string): void {
-      // Skip if force is zero or very small or ctx is null
-      if (Math.abs(force) < 0.1 || !ctx) return;
+      if (!ctx || force === 0) return;
       
       // Calculate arrow dimensions
-      const arrowLength = Math.abs(force) * FORCE_SCALE;
+      let arrowLength = Math.abs(force) * FORCE_SCALE;
+      
+      // For very small forces, ensure they are still visible with minimum length
+      if (arrowLength < MIN_ARROW_LENGTH && arrowLength > 0) {
+        arrowLength = MIN_ARROW_LENGTH;
+      }
+      
       const arrowDirection = Math.sign(force);
       
-      // Start position (cart center + offset)
-      const startX = cartXPixels;
-      const startY = cartYCenter + yOffset;
+      // Start position (above cart center + offset)
+      const startX = cartCenterX;
+      const startY = vectorOriginY + yOffset;
       
       // End position
       const endX = startX + arrowLength * arrowDirection;
       const endY = startY;
       
-      // Draw the line
+      // Draw the line - thicker for better visibility
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, startY);
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 4; // even thicker line
       ctx.stroke();
       
-      // Draw the arrow head
+      // Draw the arrow head - larger for better visibility
       ctx.beginPath();
       ctx.moveTo(endX, endY);
       ctx.lineTo(endX - ARROW_HEAD_SIZE * arrowDirection, endY - ARROW_HEAD_SIZE / 2);
@@ -239,29 +246,52 @@
       
       // Draw the label
       ctx.fillStyle = color;
-      ctx.font = 'bold 14px Roboto';
+      ctx.font = 'bold 18px Roboto'; // even larger font
       ctx.textBaseline = 'middle';
       
+      // Simplified value display for better understanding
+      let valueText = "";
+      if (Math.abs(force) < 0.5) {
+        // For very small forces, just say "small" instead of tiny numbers
+        valueText = "small";
+      } else {
+        // Otherwise round to 1 decimal place for clarity
+        valueText = Math.abs(force).toFixed(1) + " N";
+        
+        // Add direction text for better understanding
+        if (arrowDirection > 0) {
+          valueText += " →";
+        } else {
+          valueText = "← " + valueText;
+        }
+      }
+      
+      // Position the text for better readability
       if (arrowDirection > 0) {
         ctx.textAlign = 'left';
-        ctx.fillText(`${label} = ${force.toFixed(1)} N`, endX + 5, endY);
+        ctx.fillText(`${label}: ${valueText}`, endX + 15, endY);
       } else {
         ctx.textAlign = 'right';
-        ctx.fillText(`${label} = ${Math.abs(force).toFixed(1)} N`, endX - 5, endY);
+        ctx.fillText(`${label}: ${valueText}`, endX - 15, endY);
       }
     }
     
-    // Draw each force vector with vertical spacing
+    // Draw each force vector with spacing
     const forceValues = get(forces);
+    const parameters = get(params);
     
-    // Total Force (Sum)
-    drawForceVector(forceValues.sumN, -30, getCssVar('--color-red'), '\u03a3F');
+    // Draw force vectors vertically centered, with clear spacing
+    // Applied Force (top)
+    drawForceVector(forceValues.appliedN, -40, getCssVar('--color-green'), 'Force');
     
-    // Applied Force
-    drawForceVector(forceValues.appliedN, 0, getCssVar('--color-green'), 'F');
-    
-    // Friction Force
-    drawForceVector(forceValues.frictionN, 30, getCssVar('--color-blue'), 'F_fr');
+    // Only show friction if friction coefficient is non-zero
+    if (parameters.frictionMu > 0) {
+      // Friction Force (middle)
+      drawForceVector(forceValues.frictionN, 0, getCssVar('--color-blue'), 'Friction');
+      
+      // Total Force (bottom) - only show when friction exists (otherwise it's same as applied force)
+      drawForceVector(forceValues.sumN, 40, getCssVar('--color-red'), 'Net Force');
+    }
   }
   
   // Function to draw motion visualization (velocity arrow and graphs)
@@ -866,16 +896,20 @@
     
     // Draw all force vectors with spacing
     drawForceVector(forceValues.appliedN, -15, getCssVar('--color-green'), 'F'); // Applied Force
-    drawForceVector(forceValues.frictionN, 15, getCssVar('--color-blue'), 'Ffr'); // Friction
     
-    // Draw net force at bottom
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 12px Roboto';
-    ctx.textAlign = 'center';
-    ctx.fillText('Net Force:', centerX, centerY + 55);
-    
-    // Draw sum force vector
-    drawForceVector(forceValues.sumN, 70, getCssVar('--color-red'), 'ΣF'); // Sum Force
+    // Only show friction and net force if friction is enabled
+    if (parameters.frictionMu > 0) {
+      drawForceVector(forceValues.frictionN, 15, getCssVar('--color-blue'), 'Fr'); // Friction
+      
+      // Draw net force at bottom
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 12px Roboto';
+      ctx.textAlign = 'center';
+      ctx.fillText('Net Force:', centerX, centerY + 55);
+      
+      // Draw sum force vector
+      drawForceVector(forceValues.sumN, 70, getCssVar('--color-red'), 'Fnet'); // Sum Force
+    }
   }
 
   // Function to draw the physics dashboard at the top of the screen
@@ -973,23 +1007,34 @@
     }
     
     // Draw each gauge
-    // Forces
-    drawGauge(0, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
-    
-    // Acceleration
-    drawGauge(1, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
-    
-    // Velocity - show data but depends on simulation
-    drawGauge(2, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
-    
-    // Position - show data but depends on simulation
-    drawGauge(3, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
-    
-    // Energy - depends on simulation
-    drawGauge(4, "Energy", energyValues.EkJ + energyValues.EpJ, "J", 0, 100, 'purple');
-    
-    // Power - depends on simulation
-    drawGauge(5, "Power", Math.abs(powerValues.instantW), "W", 0, 300, 'orange');
+    // Draw different sets of gauges depending on friction state
+    if (parameters.frictionMu > 0) {
+      // When friction is enabled, show all forces
+      // Forces
+      drawGauge(0, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      drawGauge(1, "Friction", Math.abs(forceValues.frictionN), "N", 0, 10, getCssVar('--color-blue'));
+      drawGauge(2, "Net Force", forceValues.sumN, "N", 0, 30, getCssVar('--color-red'));
+      
+      // Motion values
+      drawGauge(3, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
+      drawGauge(4, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
+      
+      // Last column is energy/power
+      drawGauge(5, "Energy", energyValues.EkJ, "J", 0, 100, 'purple');
+    } else {
+      // When no friction, focus on motion values
+      // Forces - just applied force since it equals net force
+      drawGauge(0, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      
+      // Motion values get more space
+      drawGauge(1, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
+      drawGauge(2, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
+      drawGauge(3, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
+      
+      // Energy and power
+      drawGauge(4, "Kinetic Energy", energyValues.EkJ, "J", 0, 100, 'purple');
+      drawGauge(5, "Power", Math.abs(powerValues.instantW), "W", 0, 300, 'orange');
+    }
     
     // Draw simulation time 
     ctx.font = '12px Roboto';
