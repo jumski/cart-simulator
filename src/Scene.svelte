@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { 
     GameState, 
     xM, 
@@ -10,7 +11,8 @@
     energy,
     power,
     mode,
-    timeS
+    timeS,
+    running
   } from './lib/GameState';
   
   // Reference to the canvas element
@@ -21,10 +23,21 @@
   let width = 896; // Default from spec (70% of 1280px)
   let height = 720; // Default from spec
   
-  // Constants for rendering
-  const TRACK_Y = 540; // Y position of the track
-  const TRACK_START_X = 0;
-  const TRACK_END_X = 800;
+  // Constants for rendering - these will be calculated based on canvas dimensions
+  let TRACK_Y: number;  // Y position of the track
+  let TRACK_START_X: number; // Start position of track
+  let TRACK_END_X: number; // End position of track
+  
+  // Update position constants based on canvas size
+  function updatePositionConstants() {
+    TRACK_Y = Math.min(540, height * 0.75); // Y position of the track - 75% down the canvas
+    TRACK_START_X = 50; // Start track 50px from left edge for better visibility
+    TRACK_END_X = width - 50; // End track 50px from right edge
+    console.log('Updated track positions:', { TRACK_Y, TRACK_START_X, TRACK_END_X, width, height });
+  }
+  
+  // Initialize the constants
+  updatePositionConstants();
   const SCALE_FACTOR = 80; // 1 meter = 80 pixels
   const CART_WIDTH = 120;
   const CART_HEIGHT = 70;
@@ -41,17 +54,32 @@
       // Get actual size of canvas container
       const container = canvas.parentElement;
       if (container) {
-        // Set canvas size to match container
-        width = container.clientWidth;
-        height = container.clientHeight;
+        console.log('Container dimensions:', {
+          clientWidth: container.clientWidth,
+          clientHeight: container.clientHeight,
+          offsetWidth: container.offsetWidth,
+          offsetHeight: container.offsetHeight
+        });
         
-        // Update canvas dimensions
+        // Set canvas size to match container, with minimum dimensions
+        width = Math.max(container.clientWidth, 800);
+        height = Math.max(container.clientHeight, 600);
+        
+        // Update canvas dimensions explicitly
         canvas.width = width;
         canvas.height = height;
+        console.log('Updated canvas dimensions:', { width, height });
+        
+        // Update track positioning based on new canvas dimensions
+        updatePositionConstants();
         
         // Re-render
         render();
+      } else {
+        console.error('Container not found');
       }
+    } else {
+      console.error('Canvas element not initialized');
     }
   }
 
@@ -59,12 +87,21 @@
   function drawTrack(): void {
     if (!ctx) return;
     
+    console.log('Drawing track', { TRACK_START_X, TRACK_END_X, TRACK_Y });
+    
+    // Draw track line
     ctx.beginPath();
     ctx.moveTo(TRACK_START_X, TRACK_Y);
     ctx.lineTo(TRACK_END_X, TRACK_Y);
     ctx.strokeStyle = getCssVar('--color-gray');
     ctx.lineWidth = 4;
     ctx.stroke();
+    
+    // For debugging, add a marker at the track start and end
+    ctx.fillStyle = 'red';
+    ctx.fillRect(TRACK_START_X - 5, TRACK_Y - 5, 10, 10);
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(TRACK_END_X - 5, TRACK_Y - 5, 10, 10);
   }
   
   function drawRamp(angleDeg: number): void {
@@ -87,19 +124,44 @@
   function drawCart(positionM: number): void {
     if (!ctx) return;
     
-    // Convert meters to pixels
-    const xPixels = positionM * SCALE_FACTOR;
+    console.log('Drawing cart at position:', positionM);
+    
+    // Convert meters to pixels - add 100px offset from start to ensure cart is visible
+    let xPixels;
+    
+    if (positionM === 0) {
+      // When position is 0, put cart at a starting position near the left of track
+      xPixels = TRACK_START_X + 100;
+    } else {
+      // Otherwise, convert meters to pixels with an offset to ensure it's visible
+      xPixels = TRACK_START_X + 100 + positionM * SCALE_FACTOR;
+    }
+    
+    // Calculate the min and max positions
+    const minX = TRACK_START_X + 100;  // Start position with 100px offset 
+    const maxX = TRACK_END_X - (CART_WIDTH / 2);  // End position
+    
+    // Limit cart to track edges
+    xPixels = Math.max(minX, Math.min(xPixels, maxX));
     
     // Calculate cart position (centered on x)
     const cartX = xPixels - CART_WIDTH / 2;
     const cartY = TRACK_Y - CART_HEIGHT;
     
-    // Draw cart body
-    ctx.fillStyle = getCssVar('--color-primary');
+    console.log('Cart dimensions:', { cartX, cartY, width: CART_WIDTH, height: CART_HEIGHT });
+    
+    // Draw a very visually distinctive cart that's easy to see
+    // Create gradient for cart body for better visual appearance
+    const gradient = ctx.createLinearGradient(cartX, cartY, cartX, cartY + CART_HEIGHT);
+    gradient.addColorStop(0, 'rgba(255, 50, 50, 1)');  // Bright red
+    gradient.addColorStop(1, 'rgba(180, 30, 30, 1)');  // Darker red
+    
+    // Fill with gradient
+    ctx.fillStyle = gradient;
     ctx.fillRect(cartX, cartY, CART_WIDTH, CART_HEIGHT);
     
     // Draw cart outline
-    ctx.strokeStyle = getCssVar('--color-outline');
+    ctx.strokeStyle = 'black';
     ctx.lineWidth = 2;
     ctx.strokeRect(cartX, cartY, CART_WIDTH, CART_HEIGHT);
     
@@ -152,7 +214,7 @@
     const ARROW_HEAD_SIZE = 10;
     
     // Calculate cart center position (for vector origin)
-    const cartXPixels = $xM * SCALE_FACTOR;
+    const cartXPixels = get(xM) * SCALE_FACTOR;
     const cartYCenter = TRACK_Y - CART_HEIGHT / 2;
     
     // Helper function to draw a force vector
@@ -204,14 +266,16 @@
     }
     
     // Draw each force vector with vertical spacing
+    const forceValues = get(forces);
+    
     // Total Force (Sum)
-    drawForceVector($forces.sumN, -30, getCssVar('--color-red'), '\u03a3F');
+    drawForceVector(forceValues.sumN, -30, getCssVar('--color-red'), '\u03a3F');
     
     // Applied Force
-    drawForceVector($forces.appliedN, 0, getCssVar('--color-green'), 'F');
+    drawForceVector(forceValues.appliedN, 0, getCssVar('--color-green'), 'F');
     
     // Friction Force
-    drawForceVector($forces.frictionN, 30, getCssVar('--color-blue'), 'F_fr');
+    drawForceVector(forceValues.frictionN, 30, getCssVar('--color-blue'), 'F_fr');
   }
   
   // Function to draw motion visualization (velocity arrow and graphs)
@@ -229,20 +293,24 @@
   function drawVelocityArrow(): void {
     if (!ctx) return;
     
+    // Get current velocity and position from stores
+    const velocity = get(vMS);
+    const position = get(xM);
+    
     // Skip if velocity is very small
-    if (Math.abs($vMS) < 0.01) return;
+    if (Math.abs(velocity) < 0.01) return;
     
     // Constants for arrow drawing
     const VELOCITY_SCALE = 15; // pixels per m/s
     const ARROW_HEAD_SIZE = 10;
     
     // Calculate cart center position (for vector origin)
-    const cartXPixels = $xM * SCALE_FACTOR;
+    const cartXPixels = position * SCALE_FACTOR;
     const cartYCenter = TRACK_Y - CART_HEIGHT - 20; // Above the cart
     
     // Calculate arrow dimensions
-    const arrowLength = Math.abs($vMS) * VELOCITY_SCALE;
-    const arrowDirection = Math.sign($vMS);
+    const arrowLength = Math.abs(velocity) * VELOCITY_SCALE;
+    const arrowDirection = Math.sign(velocity);
     
     // Start position
     const startX = cartXPixels;
@@ -277,10 +345,10 @@
       
       if (arrowDirection > 0) {
         ctx.textAlign = 'left';
-        ctx.fillText(`v = ${Math.abs($vMS).toFixed(1)} m/s`, endX + 5, endY);
+        ctx.fillText(`v = ${Math.abs(velocity).toFixed(1)} m/s`, endX + 5, endY);
       } else {
         ctx.textAlign = 'right';
-        ctx.fillText(`v = ${Math.abs($vMS).toFixed(1)} m/s`, endX - 5, endY);
+        ctx.fillText(`v = ${Math.abs(velocity).toFixed(1)} m/s`, endX - 5, endY);
       }
     }
   }
@@ -339,12 +407,17 @@
     }
     
     // Draw position graph (x-t)
-    if ($timeS > 0) {
+    const time = get(timeS);
+    const position = get(xM);
+    const velocity = get(vMS);
+    const acceleration = get(aMS2);
+    
+    if (time > 0) {
       const POSITION_SCALE = GRAPH_HEIGHT / 4 / 10; // 10m max range
       
       context.beginPath();
-      context.moveTo(GRAPH_X, Y_AXIS - $xM * POSITION_SCALE);
-      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $xM * POSITION_SCALE);
+      context.moveTo(GRAPH_X, Y_AXIS - position * POSITION_SCALE);
+      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - position * POSITION_SCALE);
       context.strokeStyle = getCssVar('--color-green');
       context.lineWidth = 2;
       context.stroke();
@@ -357,12 +430,12 @@
     }
     
     // Draw velocity graph (v-t)
-    if ($timeS > 0) {
+    if (time > 0) {
       const VELOCITY_SCALE = GRAPH_HEIGHT / 4 / 5; // 5m/s max range
       
       context.beginPath();
       context.moveTo(GRAPH_X, Y_AXIS - 0);
-      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $vMS * VELOCITY_SCALE);
+      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - velocity * VELOCITY_SCALE);
       context.strokeStyle = getCssVar('--color-blue');
       context.lineWidth = 2;
       context.stroke();
@@ -375,12 +448,12 @@
     }
     
     // Draw acceleration graph (a-t)
-    if ($timeS > 0) {
+    if (time > 0) {
       const ACCELERATION_SCALE = GRAPH_HEIGHT / 4 / 2; // 2m/s² max range
       
       context.beginPath();
       context.moveTo(GRAPH_X, Y_AXIS - 0);
-      context.lineTo(GRAPH_X + $timeS * TIME_SCALE, Y_AXIS - $aMS2 * ACCELERATION_SCALE);
+      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - acceleration * ACCELERATION_SCALE);
       context.strokeStyle = getCssVar('--color-red');
       context.lineWidth = 2;
       context.stroke();
@@ -403,26 +476,30 @@
     const ENERGY_SCALE = 0.5; // px per Joule
     const BAR_SPACING = 80;
     
+    // Get energy values from store
+    const position = get(xM);
+    const energyValues = get(energy);
+    
     // Calculate cart center position (for bar placement)
-    const cartXPixels = $xM * SCALE_FACTOR;
+    const cartXPixels = position * SCALE_FACTOR;
     const barY = TRACK_Y - CART_HEIGHT - 20 - MAX_HEIGHT; // Above the cart
     
     // Calculate bar heights (clamped to MAX_HEIGHT)
-    const kineticHeight = Math.min($energy.EkJ * ENERGY_SCALE, MAX_HEIGHT);
-    const potentialHeight = Math.min($energy.EpJ * ENERGY_SCALE, MAX_HEIGHT);
-    const workHeight = Math.min($energy.WJ * ENERGY_SCALE, MAX_HEIGHT);
+    const kineticHeight = Math.min(energyValues.EkJ * ENERGY_SCALE, MAX_HEIGHT);
+    const potentialHeight = Math.min(energyValues.EpJ * ENERGY_SCALE, MAX_HEIGHT);
+    const workHeight = Math.min(energyValues.WJ * ENERGY_SCALE, MAX_HEIGHT);
     
     // Draw kinetic energy bar
     const kineticX = cartXPixels - BAR_SPACING;
-    drawEnergyBar(kineticX, barY, BAR_WIDTH, kineticHeight, getCssVar('--color-red'), 'Ek', $energy.EkJ);
+    drawEnergyBar(kineticX, barY, BAR_WIDTH, kineticHeight, getCssVar('--color-red'), 'Ek', energyValues.EkJ);
     
     // Draw potential energy bar
     const potentialX = cartXPixels;
-    drawEnergyBar(potentialX, barY, BAR_WIDTH, potentialHeight, getCssVar('--color-green'), 'Ep', $energy.EpJ);
+    drawEnergyBar(potentialX, barY, BAR_WIDTH, potentialHeight, getCssVar('--color-green'), 'Ep', energyValues.EpJ);
     
     // Draw work bar
     const workX = cartXPixels + BAR_SPACING;
-    drawEnergyBar(workX, barY, BAR_WIDTH, workHeight, getCssVar('--color-blue'), 'W', $energy.WJ);
+    drawEnergyBar(workX, barY, BAR_WIDTH, workHeight, getCssVar('--color-blue'), 'W', energyValues.WJ);
     
     // Draw scale
     ctx.strokeStyle = '#000000';
@@ -504,12 +581,15 @@
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, 150, 50);
     
+    // Get power values from store
+    const powerValues = get(power);
+    
     // Draw power text
     ctx.fillStyle = getCssVar('--color-green');
     ctx.font = 'bold 24px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`P = ${Math.abs($power.instantW).toFixed(0)} W`, x + 75, y + 25);
+    ctx.fillText(`P = ${Math.abs(powerValues.instantW).toFixed(0)} W`, x + 75, y + 25);
   }
   
   // Function to draw power meter
@@ -522,8 +602,11 @@
     const METER_RADIUS = 60;
     const MAX_POWER = 300; // Watts
     
+    // Get power values from store
+    const powerValues = get(power);
+    
     // Calculate power percentage (-1 to 1)
-    const powerPercent = Math.max(-1, Math.min(1, $power.instantW / MAX_POWER));
+    const powerPercent = Math.max(-1, Math.min(1, powerValues.instantW / MAX_POWER));
     
     // Draw meter background
     ctx.beginPath();
@@ -659,20 +742,23 @@
       ctx.fillText(`${p}W`, GRAPH_X + 15, y);
     }
     
+    // Get power values from store
+    const powerValues = get(power);
+    
     // Draw power graph from logged data points
-    if ($power.log.length > 1) {
+    if (powerValues.log.length > 1) {
       ctx.beginPath();
       
       // Start from the first point
-      const firstPoint = $power.log[0];
+      const firstPoint = powerValues.log[0];
       ctx.moveTo(
         GRAPH_X + firstPoint.t * TIME_SCALE, 
         Y_AXIS - firstPoint.P * POWER_SCALE
       );
       
       // Connect all points
-      for (let i = 1; i < $power.log.length; i++) {
-        const point = $power.log[i];
+      for (let i = 1; i < powerValues.log.length; i++) {
+        const point = powerValues.log[i];
         ctx.lineTo(
           GRAPH_X + point.t * TIME_SCALE, 
           Y_AXIS - point.P * POWER_SCALE
@@ -689,25 +775,40 @@
   function render(): void {
     if (!ctx) return;
     
+    // Debug log to track render calls
+    // Use get() to access store values without $ syntax
+    const isRunning = get(running);
+    const position = get(xM);
+    const parameters = get(params);
+    
+    console.log('Rendering scene:', { 
+      position, 
+      width, 
+      height, 
+      parameters,
+      isRunning
+    });
+    
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
     // Draw static elements
-    drawRamp($params.angleDeg);
+    drawRamp(get(params).angleDeg);
     drawTrack();
     drawScale();
     
     // Draw cart at current position
-    drawCart($xM);
+    drawCart(get(xM));
     
     // Mode-specific rendering
-    if ($mode === 'forces') {
+    const currentMode = get(mode);
+    if (currentMode === 'forces') {
       drawForces();
-    } else if ($mode === 'motion') {
+    } else if (currentMode === 'motion') {
       drawMotion();
-    } else if ($mode === 'energy') {
+    } else if (currentMode === 'energy') {
       drawEnergy();
-    } else if ($mode === 'power') {
+    } else if (currentMode === 'power') {
       drawPower();
     }
   }
@@ -715,6 +816,12 @@
   onMount(() => {
     // Get canvas context
     ctx = canvas.getContext('2d');
+    console.log('Canvas context initialized:', ctx);
+    
+    // Force explicit canvas size
+    canvas.width = width;
+    canvas.height = height;
+    console.log('Canvas dimensions set:', { width, height });
     
     // Initialize canvas size
     handleResize();
@@ -722,8 +829,11 @@
     // Add resize listener
     window.addEventListener('resize', handleResize);
     
-    // Initial render
-    render();
+    // Initial render - force a render immediately after mount
+    setTimeout(() => {
+      console.log('Forcing initial render');
+      render();
+    }, 100);
   });
   
   onDestroy(() => {
@@ -736,6 +846,34 @@
     if (ctx) {
       render();
     }
+  }
+  
+  // Explicitly watch all store values to trigger render when they change
+  $: if (ctx) {
+    // We still need to use the $ syntax here to trigger reactivity
+    // The $ syntax in a reactive statement is a Svelte-specific feature
+    const _xM = $xM;
+    const _vMS = $vMS;
+    const _aMS2 = $aMS2;
+    const _params = $params;
+    const _forces = $forces;
+    const _energy = $energy;
+    const _power = $power;
+    const _mode = $mode;
+    const _timeS = $timeS;
+    const _running = $running;
+    
+    // Only log major changes to reduce console spam
+    if (Math.abs(_xM) > 0.01 || Math.abs(_vMS) > 0.01) {
+      console.log('State update detected', { 
+        position: _xM, 
+        velocity: _vMS, 
+        acceleration: _aMS2, 
+        running: _running 
+      });
+    }
+    
+    render();
   }
 </script>
 
@@ -751,11 +889,14 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    background-color: var(--color-background);
+    border: 1px solid #ccc;
   }
   
   canvas {
     display: block;
     max-width: 100%;
     max-height: 100%;
+    background-color: white;
   }
 </style>

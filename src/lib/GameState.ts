@@ -107,11 +107,26 @@ function calculatePhysics(state: GameStateType, dt: number): GameStateType {
   newState.timeS += dt;
   
   // Check if force should still be applied
+  // Add debug log to see what's happening
+  console.log('Physics step:', { 
+    timeS: newState.timeS, 
+    xM: newState.xM, 
+    vMS: newState.vMS, 
+    aMS2: newState.aMS2,
+    running: newState.running,
+    dt: dt
+  });
   const applyForce = newState.timeS <= state.params.durationS;
   
   // Calculate forces
   const sinAngle = Math.sin(state.params.angleDeg * Math.PI / 180);
   const cosAngle = Math.cos(state.params.angleDeg * Math.PI / 180);
+  
+  console.log('Angle calculations:', {
+    angleDeg: state.params.angleDeg,
+    sinAngle: sinAngle,
+    cosAngle: cosAngle
+  });
   
   // Applied force (only if within duration)
   newState.forces = { ...state.forces };
@@ -144,6 +159,14 @@ function calculatePhysics(state: GameStateType, dt: number): GameStateType {
   
   // Update position (x = x0 + v*t + 0.5*a*t^2)
   newState.xM = state.xM + newState.vMS * dt + 0.5 * newState.aMS2 * dt * dt;
+  
+  console.log('Physics calculations:', {
+    acceleration: newState.aMS2,
+    velocity: newState.vMS,
+    position: newState.xM,
+    force: newState.forces.sumN,
+    mass: state.params.massKg
+  });
   
   // Calculate energy values
   newState.energy = { ...state.energy };
@@ -178,7 +201,9 @@ function calculatePhysics(state: GameStateType, dt: number): GameStateType {
 
 // Animation loop
 function animationLoop(timestamp: number) {
+  console.log('Animation frame', timestamp);
   gameState.update(state => calculatePhysics(state, SIMULATION_STEP));
+  // Request the next frame
   animationFrameId = requestAnimationFrame(animationLoop);
 }
 
@@ -229,11 +254,29 @@ export const GameState: GameStateAPI = {
   
   // Start simulation
   start() {
+    console.log('Starting simulation');
+    
+    // If force is zero, set it to a default value to ensure movement
+    const currentState = get(gameState);
+    if (currentState.params.forceN === 0 && currentState.params.angleDeg === 0) {
+      console.log('Force is zero, setting to default value');
+      gameState.update(state => ({
+        ...state,
+        params: {
+          ...state.params,
+          forceN: 5.0  // Default force to ensure movement
+        }
+      }));
+    }
+    
     gameState.update(state => ({ ...state, running: true }));
     
     // Start animation loop if not already running
     if (!animationFrameId) {
+      console.log('Starting animation loop');
       animationFrameId = requestAnimationFrame(animationLoop);
+    } else {
+      console.log('Animation loop already running', animationFrameId);
     }
   },
   
