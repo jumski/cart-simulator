@@ -3,8 +3,8 @@
     GameState, 
     params, 
     running, 
-    timeS, 
-    mode 
+    timeS 
+    // mode removed as visualization modes are now merged
   } from './lib/GameState';
   
   // Friction checkbox state 
@@ -138,50 +138,7 @@
     </div>
   </section>
 
-  <section class="mode-section">
-    <h2 class="section-title">Visualization Mode</h2>
-    <div class="view-mode-group">
-      <!-- Forces Mode -->
-      <button 
-        class="view-mode-button {$mode === 'forces' ? 'active' : ''}"
-        on:click={() => GameState.setMode('forces')}
-        aria-pressed={$mode === 'forces'}
-        aria-label="Forces visualization mode"
-      >
-        Forces
-      </button>
-      
-      <!-- Motion Mode -->
-      <button 
-        class="view-mode-button {$mode === 'motion' ? 'active' : ''}"
-        on:click={() => GameState.setMode('motion')}
-        aria-pressed={$mode === 'motion'}
-        aria-label="Motion visualization mode"
-      >
-        Motion
-      </button>
-      
-      <!-- Energy Mode -->
-      <button 
-        class="view-mode-button {$mode === 'energy' ? 'active' : ''}"
-        on:click={() => GameState.setMode('energy')}
-        aria-pressed={$mode === 'energy'}
-        aria-label="Energy visualization mode"
-      >
-        Energy
-      </button>
-      
-      <!-- Power Mode -->
-      <button 
-        class="view-mode-button {$mode === 'power' ? 'active' : ''}"
-        on:click={() => GameState.setMode('power')}
-        aria-pressed={$mode === 'power'}
-        aria-label="Power visualization mode"
-      >
-        Power
-      </button>
-    </div>
-  </section>
+  <!-- Visualization Mode section removed as all elements are now shown in a single comprehensive view -->
 
   <section class="controls-section">
     <h2 class="section-title">Controls</h2>

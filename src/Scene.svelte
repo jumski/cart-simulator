@@ -10,9 +10,9 @@
     forces, 
     energy,
     power,
-    mode,
     timeS,
     running
+    // mode not needed anymore since all visualizations are shown together
   } from './lib/GameState';
   
   // Reference to the canvas element
@@ -369,29 +369,35 @@
     }
   }
   
-  // Function to draw motion graphs (x-t, v-t, a-t)
-  function drawMotionGraphs(): void {
+  // Function to draw a simplified, smaller motion graph
+  function drawSimplifiedMotionGraph(): void {
     if (!ctx) return;
     
-    // Graph dimensions and position
-    const GRAPH_WIDTH = 800;
-    const GRAPH_HEIGHT = 120;
+    // Graph dimensions and position - more compact
+    const GRAPH_WIDTH = 400;
+    const GRAPH_HEIGHT = 100;
     const GRAPH_Y = TRACK_Y + 50; // Below the track
-    const GRAPH_X = 0;
+    const GRAPH_X = width / 2 - GRAPH_WIDTH / 2; // Centered horizontally
     
     // Time constants
-    const MAX_TIME = 10; // seconds to show
+    const MAX_TIME = 5; // seconds to show (reduced for better visibility)
     const TIME_SCALE = GRAPH_WIDTH / MAX_TIME; // pixels per second
     
     // Create a reference that TypeScript knows is non-null
     const context = ctx!;
     
     // Draw graph background
-    context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
     context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
     context.strokeStyle = '#000000';
     context.lineWidth = 1;
     context.strokeRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    
+    // Graph title
+    context.fillStyle = '#000000';
+    context.font = 'bold 14px Roboto';
+    context.textAlign = 'center';
+    context.fillText('Motion Graph', GRAPH_X + GRAPH_WIDTH/2, GRAPH_Y - 5);
     
     // Draw time axis
     const Y_AXIS = GRAPH_Y + GRAPH_HEIGHT / 2;
@@ -413,73 +419,92 @@
       context.strokeStyle = '#888888';
       context.stroke();
       
-      // Draw label every 2 seconds
-      if (t % 2 === 0) {
-        context.fillStyle = '#333333';
-        context.font = '12px Roboto';
-        context.textAlign = 'center';
-        context.fillText(`${t}s`, x, Y_AXIS + 20);
-      }
+      // Draw all time labels
+      context.fillStyle = '#333333';
+      context.font = '10px Roboto';
+      context.textAlign = 'center';
+      context.fillText(`${t}s`, x, Y_AXIS + 15);
     }
     
-    // Draw position graph (x-t)
+    // Get current values
     const time = get(timeS);
     const position = get(xM);
     const velocity = get(vMS);
     const acceleration = get(aMS2);
     
-    if (time > 0) {
-      const POSITION_SCALE = GRAPH_HEIGHT / 4 / 10; // 10m max range
-      
-      context.beginPath();
-      context.moveTo(GRAPH_X, Y_AXIS - position * POSITION_SCALE);
-      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - position * POSITION_SCALE);
-      context.strokeStyle = getCssVar('--color-green');
-      context.lineWidth = 2;
-      context.stroke();
-      
-      // Label
-      context.fillStyle = getCssVar('--color-green');
-      context.font = '12px Roboto';
-      context.textAlign = 'left';
-      context.fillText('x(t)', GRAPH_X + 10, GRAPH_Y + 15);
-    }
+    // Skip if simulation hasn't started yet
+    if (time <= 0) return;
+    
+    // Draw all three graphs simultaneously, with a legend
+    // Calculate scales
+    const POSITION_SCALE = GRAPH_HEIGHT / 3 / 10; // 10m max range
+    const VELOCITY_SCALE = GRAPH_HEIGHT / 3 / 5; // 5m/s max range
+    const ACCELERATION_SCALE = GRAPH_HEIGHT / 3 / 2; // 2m/s² max range
+    
+    // Draw position graph (x-t)
+    context.beginPath();
+    context.moveTo(GRAPH_X, Y_AXIS - position * POSITION_SCALE);
+    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - position * POSITION_SCALE);
+    context.strokeStyle = getCssVar('--color-green');
+    context.lineWidth = 2;
+    context.stroke();
     
     // Draw velocity graph (v-t)
-    if (time > 0) {
-      const VELOCITY_SCALE = GRAPH_HEIGHT / 4 / 5; // 5m/s max range
-      
-      context.beginPath();
-      context.moveTo(GRAPH_X, Y_AXIS - 0);
-      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - velocity * VELOCITY_SCALE);
-      context.strokeStyle = getCssVar('--color-blue');
-      context.lineWidth = 2;
-      context.stroke();
-      
-      // Label
-      context.fillStyle = getCssVar('--color-blue');
-      context.font = '12px Roboto';
-      context.textAlign = 'left';
-      context.fillText('v(t)', GRAPH_X + 10, GRAPH_Y + 30);
-    }
+    context.beginPath();
+    context.moveTo(GRAPH_X, Y_AXIS - 0);
+    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - velocity * VELOCITY_SCALE);
+    context.strokeStyle = getCssVar('--color-blue');
+    context.lineWidth = 2;
+    context.stroke();
     
     // Draw acceleration graph (a-t)
-    if (time > 0) {
-      const ACCELERATION_SCALE = GRAPH_HEIGHT / 4 / 2; // 2m/s² max range
-      
-      context.beginPath();
-      context.moveTo(GRAPH_X, Y_AXIS - 0);
-      context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - acceleration * ACCELERATION_SCALE);
-      context.strokeStyle = getCssVar('--color-red');
-      context.lineWidth = 2;
-      context.stroke();
-      
-      // Label
-      context.fillStyle = getCssVar('--color-red');
-      context.font = '12px Roboto';
-      context.textAlign = 'left';
-      context.fillText('a(t)', GRAPH_X + 10, GRAPH_Y + 45);
-    }
+    context.beginPath();
+    context.moveTo(GRAPH_X, Y_AXIS - 0);
+    context.lineTo(GRAPH_X + time * TIME_SCALE, Y_AXIS - acceleration * ACCELERATION_SCALE);
+    context.strokeStyle = getCssVar('--color-red');
+    context.lineWidth = 2;
+    context.stroke();
+    
+    // Draw legend
+    const legendX = GRAPH_X + 10;
+    const legendY = GRAPH_Y + 20;
+    const legendSpacing = 25;
+    
+    // Position legend item
+    context.strokeStyle = getCssVar('--color-green');
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(legendX, legendY);
+    context.lineTo(legendX + 20, legendY);
+    context.stroke();
+    context.fillStyle = getCssVar('--color-green');
+    context.font = '12px Roboto';
+    context.textAlign = 'left';
+    context.fillText('Position', legendX + 25, legendY + 4);
+    
+    // Velocity legend item
+    context.strokeStyle = getCssVar('--color-blue');
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(legendX, legendY + legendSpacing);
+    context.lineTo(legendX + 20, legendY + legendSpacing);
+    context.stroke();
+    context.fillStyle = getCssVar('--color-blue');
+    context.font = '12px Roboto';
+    context.textAlign = 'left';
+    context.fillText('Velocity', legendX + 25, legendY + legendSpacing + 4);
+    
+    // Acceleration legend item
+    context.strokeStyle = getCssVar('--color-red');
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(legendX, legendY + 2 * legendSpacing);
+    context.lineTo(legendX + 20, legendY + 2 * legendSpacing);
+    context.stroke();
+    context.fillStyle = getCssVar('--color-red');
+    context.font = '12px Roboto';
+    context.textAlign = 'left';
+    context.fillText('Acceleration', legendX + 25, legendY + 2 * legendSpacing + 4);
   }
   
   // Function to draw energy visualization
@@ -1048,19 +1073,21 @@
     // Draw cart at current position
     drawCart(get(xM));
     
-    // Mode-specific rendering
-    const currentMode = get(mode);
-    if (currentMode === 'forces') {
-      drawForces();
-    } else if (currentMode === 'motion') {
-      drawMotion();
-    } else if (currentMode === 'energy') {
-      drawEnergy();
-    } else if (currentMode === 'power') {
-      drawPower();
+    // Draw all visualization elements in one comprehensive view
+    // Priority to forces visualization, then other elements that don't conflict
+    
+    // Draw force vectors (from forces mode)
+    drawForces();
+    
+    // Draw velocity arrow (from motion mode) if there's significant velocity
+    if (Math.abs(get(vMS)) > 0.01) {
+      drawVelocityArrow();
     }
     
-    // Force preview in top-right corner has been removed
+    // Draw small motion graph below the track
+    drawSimplifiedMotionGraph();
+    
+    // Force preview has been removed
   }
   
   onMount(() => {
@@ -1113,7 +1140,7 @@
     const _forces = $forces;
     const _energy = $energy;
     const _power = $power;
-    const _mode = $mode;
+    // _mode removed as we merged all visualization modes
     const _timeS = $timeS;
     const _running = $running;
     
