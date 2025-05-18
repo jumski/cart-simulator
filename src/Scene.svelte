@@ -30,8 +30,8 @@
   
   // Update position constants based on canvas size
   function updatePositionConstants() {
-    // Push the track down a bit to make room for the dashboard (120px from dashboard bottom)
-    TRACK_Y = Math.min(550, height * 0.65 + 130); // Y position of the track
+    // Push the track down further to make room for the larger dashboard (170px from dashboard bottom)
+    TRACK_Y = Math.min(550, height * 0.65 + 180); // Y position of the track
     TRACK_START_X = 50; // Start track 50px from left edge for better visibility
     TRACK_END_X = width - 50; // End track 50px from right edge
     console.log('Updated track positions:', { TRACK_Y, TRACK_START_X, TRACK_END_X, width, height });
@@ -803,8 +803,8 @@
     const powerValues = get(power);
     const time = get(timeS);
     
-    // Dashboard dimensions
-    const DASH_HEIGHT = 100;
+    // Dashboard dimensions - increase height for circular gauges
+    const DASH_HEIGHT = 150;
     const DASH_WIDTH = width - 20; // 10px margin on each side
     const DASH_X = 10;
     const DASH_Y = 10;
@@ -818,9 +818,13 @@
     
     // Draw title
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 14px Roboto';
+    ctx.font = 'bold 16px Roboto';
     ctx.textAlign = 'center';
-    ctx.fillText('Physics Values Dashboard', DASH_X + DASH_WIDTH/2, DASH_Y + 15);
+    ctx.fillText('PHYSICS DASHBOARD', DASH_X + DASH_WIDTH/2, DASH_Y + 15);
+    
+    // Draw subtitle
+    ctx.font = '12px Roboto';
+    ctx.fillText('Speed and power are shown as car-style gauges', DASH_X + DASH_WIDTH/2, DASH_Y + 32);
     
     // Draw separator line
     ctx.beginPath();
@@ -834,29 +838,27 @@
     const gaugeWidth = DASH_WIDTH / numGauges;
     const gaugeY = DASH_Y + 45;
     
-    // Function to draw a gauge with a value
-    function drawGauge(index: number, label: string, value: number, unit: string, minVal: number, maxVal: number, color: string): void {
+    // Function to draw a linear gauge with a value
+    function drawLinearGauge(x: number, y: number, width: number, label: string, value: number, unit: string, minVal: number, maxVal: number, color: string): void {
       if (!ctx) return;
-      
-      // Position
-      const x = DASH_X + gaugeWidth * index + gaugeWidth/2;
       
       // Draw label
       ctx.fillStyle = '#000000';
       ctx.font = 'bold 12px Roboto';
-      ctx.textAlign = 'center';
-      ctx.fillText(label, x, gaugeY);
+      ctx.textAlign = 'left';
+      ctx.fillText(label, x, y);
       
       // Draw value
-      ctx.font = 'bold 16px Roboto';
+      ctx.font = 'bold 14px Roboto';
       ctx.fillStyle = color;
-      ctx.fillText(value.toFixed(2) + ' ' + unit, x, gaugeY + 22);
+      ctx.textAlign = 'right';
+      ctx.fillText(value.toFixed(2) + ' ' + unit, x + width * 0.95, y);
       
       // Draw gauge background
-      const gaugeLength = gaugeWidth * 0.7;
+      const gaugeLength = width * 0.9;
       const gaugeHeight = 6;
-      const gaugeX = x - gaugeLength/2;
-      const gaugeY2 = gaugeY + 30;
+      const gaugeX = x;
+      const gaugeY2 = y + 10;
       
       ctx.fillStyle = '#eeeeee';
       ctx.fillRect(gaugeX, gaugeY2, gaugeLength, gaugeHeight);
@@ -883,34 +885,123 @@
       ctx.fillText(maxVal.toString(), gaugeX + gaugeLength, gaugeY2 + gaugeHeight + 10);
     }
     
-    // Draw each gauge
+    // Function to draw a circular car-style gauge
+    function drawCircularGauge(x: number, y: number, radius: number, value: number, minVal: number, maxVal: number, label: string, unit: string, color: string): void {
+      if (!ctx) return;
+      
+      // Angles for the gauge arc (from -135 to +135 degrees, converted to radians)
+      const startAngle = -135 * Math.PI / 180;
+      const endAngle = 135 * Math.PI / 180;
+      const totalAngle = endAngle - startAngle;
+      
+      // Calculate value angle
+      const normalizedValue = Math.min(1, Math.max(0, (value - minVal) / (maxVal - minVal)));
+      const valueAngle = startAngle + normalizedValue * totalAngle;
+      
+      // Draw outer circle (gauge background)
+      ctx.beginPath();
+      ctx.arc(x, y, radius, startAngle, endAngle);
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#eeeeee';
+      ctx.stroke();
+      
+      // Draw value arc
+      ctx.beginPath();
+      ctx.arc(x, y, radius, startAngle, valueAngle);
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      
+      // Draw center cap
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 0.1, 0, Math.PI * 2);
+      ctx.fillStyle = '#333333';
+      ctx.fill();
+      
+      // Draw gauge needle
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(valueAngle) * radius * 0.95, y + Math.sin(valueAngle) * radius * 0.95);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#990000';
+      ctx.stroke();
+      
+      // Draw tick marks and numbers
+      const numTicks = 6; // 6 segments for 5 tick marks
+      
+      for (let i = 0; i <= numTicks; i++) {
+        const tickAngle = startAngle + (i / numTicks) * totalAngle;
+        const tickInnerRadius = radius * 0.8;
+        const tickOuterRadius = radius * 1.05;
+        const textRadius = radius * 1.2;
+        
+        // Draw the tick mark
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(tickAngle) * tickInnerRadius, y + Math.sin(tickAngle) * tickInnerRadius);
+        ctx.lineTo(x + Math.cos(tickAngle) * tickOuterRadius, y + Math.sin(tickAngle) * tickOuterRadius);
+        ctx.lineWidth = i % (numTicks/2) === 0 ? 3 : 1; // Thicker lines for major ticks
+        ctx.strokeStyle = '#333333';
+        ctx.stroke();
+        
+        // Draw tick value for major ticks
+        if (i % (numTicks/2) === 0) {
+          const tickValue = minVal + (i / numTicks) * (maxVal - minVal);
+          ctx.fillStyle = '#333333';
+          ctx.font = 'bold 12px Roboto';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(
+            tickValue.toString(), 
+            x + Math.cos(tickAngle) * textRadius, 
+            y + Math.sin(tickAngle) * textRadius
+          );
+        }
+      }
+      
+      // Draw label
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 14px Roboto';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, y + radius * 0.65);
+      
+      // Draw value
+      ctx.fillStyle = color;
+      ctx.font = 'bold 18px Roboto';
+      ctx.fillText(value.toFixed(1) + ' ' + unit, x, y + radius * 0.85);
+    }
+    
+    // First create a layout with the circular gauges for speed and power
+    // Draw circular gauges for speed and power
+    const DASH_THIRD = DASH_WIDTH / 3;
+    
+    // Draw speedometer on the left side
+    drawCircularGauge(DASH_X + DASH_THIRD * 0.5, DASH_Y + DASH_HEIGHT/2, 
+                       DASH_HEIGHT * 0.4, Math.abs(velocity), 0, 15, 
+                       "Speed", "m/s", getCssVar('--color-blue'));
+    
+    // Draw power meter on the right side
+    drawCircularGauge(DASH_X + DASH_WIDTH - DASH_THIRD * 0.5, DASH_Y + DASH_HEIGHT/2, 
+                      DASH_HEIGHT * 0.4, Math.abs(powerValues.instantW), 0, 300, 
+                      "Power", "W", 'orange');
+    
+    // Draw remaining linear gauges in the middle section
+    const middleX = DASH_X + DASH_THIRD;
+    const middleWidth = DASH_THIRD;
+    
     // Draw different sets of gauges depending on friction state
     if (parameters.frictionMu > 0) {
       // When friction is enabled, show all forces
-      // Forces
-      drawGauge(0, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
-      drawGauge(1, "Friction", Math.abs(forceValues.frictionN), "N", 0, 10, getCssVar('--color-blue'));
-      drawGauge(2, "Net Force", forceValues.sumN, "N", 0, 30, getCssVar('--color-red'));
-      
-      // Motion values
-      drawGauge(3, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
-      drawGauge(4, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
-      
-      // Last column is energy/power
-      drawGauge(5, "Energy", energyValues.EkJ, "J", 0, 100, 'purple');
+      // Linear gauges in the middle section
+      drawLinearGauge(middleX, DASH_Y + 30, middleWidth, "Applied Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      drawLinearGauge(middleX, DASH_Y + 50, middleWidth, "Friction", Math.abs(forceValues.frictionN), "N", 0, 10, getCssVar('--color-blue'));
+      drawLinearGauge(middleX, DASH_Y + 70, middleWidth, "Net Force", forceValues.sumN, "N", 0, 30, getCssVar('--color-red')); 
     } else {
-      // When no friction, focus on motion values
-      // Forces - just applied force since it equals net force
-      drawGauge(0, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
-      
-      // Motion values get more space
-      drawGauge(1, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
-      drawGauge(2, "Speed", Math.abs(velocity), "m/s", 0, 15, getCssVar('--color-blue'));
-      drawGauge(3, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
-      
-      // Energy and power
-      drawGauge(4, "Kinetic Energy", energyValues.EkJ, "J", 0, 100, 'purple');
-      drawGauge(5, "Power", Math.abs(powerValues.instantW), "W", 0, 300, 'orange');
+      // When no friction, show fewer gauges
+      // Linear gauges in the middle section
+      drawLinearGauge(middleX, DASH_Y + 30, middleWidth, "Force", forceValues.appliedN, "N", 0, 30, getCssVar('--color-green'));
+      drawLinearGauge(middleX, DASH_Y + 50, middleWidth, "Acceleration", acceleration, "m/s²", 0, 10, getCssVar('--color-red'));
+      drawLinearGauge(middleX, DASH_Y + 70, middleWidth, "Position", position, "m", 0, 10, getCssVar('--color-primary'));
     }
     
     // Draw simulation time 
