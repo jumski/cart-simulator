@@ -35,6 +35,7 @@ npm run check
 - TypeScript for type safety
 - Vite for build tooling
 - HTML Canvas for physics visualization
+- Bits UI for component library (see @ui.md)
 
 ## Architecture
 
