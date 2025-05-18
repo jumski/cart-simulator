@@ -1,6 +1,4 @@
-<script lang="ts">
-  import { gameStore } from './lib/GameState';
-  import { onMount } from 'svelte';
+<script>
   import Scene from './Scene.svelte';
   import ControlPanel from './ControlPanel.svelte';
 </script>

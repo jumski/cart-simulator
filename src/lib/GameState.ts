@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 
 // Type definitions for our simulation
 export type VisualizationMode = 'forces' | 'motion' | 'energy' | 'power';
@@ -52,7 +52,7 @@ export interface GameStateType {
 const GRAVITY = 9.81; // m/s²
 const SIMULATION_STEP = 1/60; // 60 fps in seconds
 
-// Create initial state
+// Initial state
 const initialState: GameStateType = {
   params: {
     massKg: 2.0,
@@ -85,8 +85,8 @@ const initialState: GameStateType = {
   }
 };
 
-// Create a writable store with the initial state
-const store = writable<GameStateType>({ ...initialState });
+// Create the main game state store
+export const gameState = writable<GameStateType>({...initialState});
 
 // Animation frame control
 let animationFrameId: number | null = null;
@@ -173,22 +173,32 @@ function calculatePhysics(state: GameStateType, dt: number): GameStateType {
 
 // Animation loop
 function animationLoop(timestamp: number) {
-  store.update(state => calculatePhysics(state, SIMULATION_STEP));
+  gameState.update(state => calculatePhysics(state, SIMULATION_STEP));
   animationFrameId = requestAnimationFrame(animationLoop);
 }
+
+// Create derived stores for each property to make them easier to access
+export const params = derived(gameState, $state => $state.params);
+export const running = derived(gameState, $state => $state.running);
+export const timeS = derived(gameState, $state => $state.timeS);
+export const mode = derived(gameState, $state => $state.mode);
+export const xM = derived(gameState, $state => $state.xM);
+export const vMS = derived(gameState, $state => $state.vMS);
+export const aMS2 = derived(gameState, $state => $state.aMS2);
+export const forces = derived(gameState, $state => $state.forces);
+export const energy = derived(gameState, $state => $state.energy);
+export const power = derived(gameState, $state => $state.power);
 
 // Public GameState API
 export const GameState = {
   // Get current state
-  get state() {
-    let currentState: GameStateType;
-    store.subscribe(s => currentState = s)();
-    return currentState!;
+  get state(): GameStateType {
+    return get(gameState);
   },
   
   // Update a parameter
   updateParam<K extends keyof Parameters>(key: K, value: Parameters[K]) {
-    store.update(state => ({
+    gameState.update(state => ({
       ...state,
       params: {
         ...state.params,
@@ -198,13 +208,13 @@ export const GameState = {
   },
   
   // Change visualization mode
-  setMode(mode: VisualizationMode) {
-    store.update(state => ({ ...state, mode }));
+  setMode(newMode: VisualizationMode) {
+    gameState.update(state => ({ ...state, mode: newMode }));
   },
   
   // Start simulation
   start() {
-    store.update(state => ({ ...state, running: true }));
+    gameState.update(state => ({ ...state, running: true }));
     
     // Start animation loop if not already running
     if (!animationFrameId) {
@@ -214,7 +224,7 @@ export const GameState = {
   
   // Pause simulation
   pause() {
-    store.update(state => ({ ...state, running: false }));
+    gameState.update(state => ({ ...state, running: false }));
     
     // Stop animation loop
     if (animationFrameId) {
@@ -231,19 +241,11 @@ export const GameState = {
       animationFrameId = null;
     }
     
-    // Reset to initial state but keep current parameters
-    store.update(state => ({
+    // Reset to initial state but keep current parameters and mode
+    gameState.update(state => ({
       ...initialState,
       params: { ...state.params },
       mode: state.mode
     }));
-  },
-  
-  // Subscribe to state changes (for observer pattern)
-  subscribe(callback: (state: GameStateType) => void) {
-    return store.subscribe(callback);
   }
 };
-
-// Export a readable store for use with $-syntax in components
-export const gameStore = { subscribe: store.subscribe };

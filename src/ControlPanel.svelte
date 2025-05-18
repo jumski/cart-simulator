@@ -1,63 +1,46 @@
-<script lang="ts">
-  import { GameState, gameStore, type VisualizationMode } from './lib/GameState';
-  // Removed Bits UI imports as we'll use regular HTML elements instead
+<script>
+  import { 
+    GameState, 
+    params, 
+    running, 
+    timeS, 
+    mode 
+  } from './lib/GameState';
   
-  // Reactive binding to GameState
-  $: gameState = $gameStore;
-  
-  // Local state variables for parameters (to be synced with GameState)
-  let massKg = gameState.params.massKg;
-  let forceN = gameState.params.forceN;
-  let frictionMu = gameState.params.frictionMu;
-  let angleDeg = gameState.params.angleDeg;
-  let durationS = gameState.params.durationS;
-  
-  // Friction checkbox state
-  let noFriction = frictionMu === 0;
+  // Friction checkbox state 
+  let noFriction = $params.frictionMu === 0;
   
   // When sliders change, update the GameState
-  function updateMass(value: number) {
-    GameState.updateParam('massKg', value);
+  function updateMass(value) {
+    GameState.updateParam('massKg', Number(value));
   }
   
-  function updateForce(value: number) {
-    GameState.updateParam('forceN', value);
+  function updateForce(value) {
+    GameState.updateParam('forceN', Number(value));
   }
   
-  function updateFriction(value: number) {
-    GameState.updateParam('frictionMu', value);
+  function updateFriction(value) {
+    GameState.updateParam('frictionMu', Number(value));
   }
   
-  function updateAngle(value: number) {
-    GameState.updateParam('angleDeg', value);
+  function updateAngle(value) {
+    GameState.updateParam('angleDeg', Number(value));
   }
   
-  function updateDuration(value: number) {
-    GameState.updateParam('durationS', value);
+  function updateDuration(value) {
+    GameState.updateParam('durationS', Number(value));
   }
   
   // Toggle friction on/off
-  function toggleFriction(checked: boolean) {
+  function toggleFriction(checked) {
     noFriction = checked;
     if (noFriction) {
-      frictionMu = 0;
       GameState.updateParam('frictionMu', 0);
     }
   }
   
-  // Keep local state in sync with GameState updates
-  $: {
-    // Update local variables when GameState changes
-    // This is needed for bidirectional binding
-    massKg = gameState.params.massKg;
-    forceN = gameState.params.forceN;
-    frictionMu = gameState.params.frictionMu;
-    angleDeg = gameState.params.angleDeg;
-    durationS = gameState.params.durationS;
-    
-    // Update checkbox state based on frictionMu
-    noFriction = frictionMu === 0;
-  }
+  // Keep noFriction in sync with frictionMu
+  $: noFriction = $params.frictionMu === 0;
 </script>
 
 <div class="control-panel">
@@ -68,15 +51,15 @@
     <div class="parameter-slider">
       <div class="parameter-label">
         <span>Mass [kg]</span>
-        <span class="parameter-value">{massKg.toFixed(1)}</span>
+        <span class="parameter-value">{$params.massKg.toFixed(1)}</span>
       </div>
       <input 
         type="range" 
         min="1"
         max="10"
         step="0.1"
-        bind:value={massKg}
-        on:input={() => updateMass(massKg)}
+        value={$params.massKg}
+        on:input={(e) => updateMass(e.target.value)}
         class="slider-root"
       />
     </div>
@@ -85,15 +68,15 @@
     <div class="parameter-slider">
       <div class="parameter-label">
         <span>Force [N]</span>
-        <span class="parameter-value">{forceN.toFixed(1)}</span>
+        <span class="parameter-value">{$params.forceN.toFixed(1)}</span>
       </div>
       <input 
         type="range" 
         min="0"
         max="30"
         step="0.5"
-        bind:value={forceN}
-        on:input={() => updateForce(forceN)}
+        value={$params.forceN}
+        on:input={(e) => updateForce(e.target.value)}
         class="slider-root"
       />
     </div>
@@ -102,26 +85,26 @@
     <div class="parameter-slider">
       <div class="parameter-label">
         <span>Friction μ</span>
-        <span class="parameter-value">{frictionMu.toFixed(2)}</span>
+        <span class="parameter-value">{$params.frictionMu.toFixed(2)}</span>
       </div>
       <input 
         type="range" 
         min="0"
         max="0.5"
         step="0.01"
-        bind:value={frictionMu}
-        on:input={() => updateFriction(frictionMu)}
+        value={$params.frictionMu}
+        on:input={(e) => updateFriction(e.target.value)}
         disabled={noFriction}
         class="slider-root {noFriction ? 'disabled' : ''}"
       />
       
-      <!-- No Friction Checkbox - will be moved to Controls section later -->
+      <!-- No Friction Checkbox -->
       <div class="checkbox-wrapper">
         <label class="checkbox-container">
           <input 
             type="checkbox" 
-            bind:checked={noFriction}
-            on:change={() => toggleFriction(noFriction)}
+            checked={noFriction}
+            on:change={(e) => toggleFriction(e.target.checked)}
           />
           No friction (μ = 0)
         </label>
@@ -132,15 +115,15 @@
     <div class="parameter-slider">
       <div class="parameter-label">
         <span>Ramp [°]</span>
-        <span class="parameter-value">{angleDeg.toFixed(0)}</span>
+        <span class="parameter-value">{$params.angleDeg.toFixed(0)}</span>
       </div>
       <input 
         type="range" 
         min="0"
         max="30"
         step="1"
-        bind:value={angleDeg}
-        on:input={() => updateAngle(angleDeg)}
+        value={$params.angleDeg}
+        on:input={(e) => updateAngle(e.target.value)}
         class="slider-root"
       />
     </div>
@@ -149,15 +132,15 @@
     <div class="parameter-slider">
       <div class="parameter-label">
         <span>Duration [s]</span>
-        <span class="parameter-value">{durationS.toFixed(1)}</span>
+        <span class="parameter-value">{$params.durationS.toFixed(1)}</span>
       </div>
       <input 
         type="range" 
         min="0"
         max="10"
         step="0.1"
-        bind:value={durationS}
-        on:input={() => updateDuration(durationS)}
+        value={$params.durationS}
+        on:input={(e) => updateDuration(e.target.value)}
         class="slider-root"
       />
     </div>
@@ -168,9 +151,9 @@
     <div class="view-mode-group">
       <!-- Forces Mode -->
       <button 
-        class="view-mode-button {gameState.mode === 'forces' ? 'active' : ''}"
+        class="view-mode-button {$mode === 'forces' ? 'active' : ''}"
         on:click={() => GameState.setMode('forces')}
-        aria-pressed={gameState.mode === 'forces'}
+        aria-pressed={$mode === 'forces'}
         aria-label="Forces visualization mode"
       >
         Forces
@@ -178,9 +161,9 @@
       
       <!-- Motion Mode -->
       <button 
-        class="view-mode-button {gameState.mode === 'motion' ? 'active' : ''}"
+        class="view-mode-button {$mode === 'motion' ? 'active' : ''}"
         on:click={() => GameState.setMode('motion')}
-        aria-pressed={gameState.mode === 'motion'}
+        aria-pressed={$mode === 'motion'}
         aria-label="Motion visualization mode"
       >
         Motion
@@ -188,9 +171,9 @@
       
       <!-- Energy Mode -->
       <button 
-        class="view-mode-button {gameState.mode === 'energy' ? 'active' : ''}"
+        class="view-mode-button {$mode === 'energy' ? 'active' : ''}"
         on:click={() => GameState.setMode('energy')}
-        aria-pressed={gameState.mode === 'energy'}
+        aria-pressed={$mode === 'energy'}
         aria-label="Energy visualization mode"
       >
         Energy
@@ -198,9 +181,9 @@
       
       <!-- Power Mode -->
       <button 
-        class="view-mode-button {gameState.mode === 'power' ? 'active' : ''}"
+        class="view-mode-button {$mode === 'power' ? 'active' : ''}"
         on:click={() => GameState.setMode('power')}
-        aria-pressed={gameState.mode === 'power'}
+        aria-pressed={$mode === 'power'}
         aria-label="Power visualization mode"
       >
         Power
@@ -214,11 +197,11 @@
     <div class="controls-group">
       <!-- Start/Pause Button -->
       <button 
-        class="button-primary {gameState.running ? 'paused' : ''}"
-        on:click={() => gameState.running ? GameState.pause() : GameState.start()}
-        aria-label={gameState.running ? 'Pause simulation' : 'Start simulation'}
+        class="button-primary {$running ? 'paused' : ''}"
+        on:click={() => $running ? GameState.pause() : GameState.start()}
+        aria-label={$running ? 'Pause simulation' : 'Start simulation'}
       >
-        {gameState.running ? 'PAUSE' : 'START'}
+        {$running ? 'PAUSE' : 'START'}
       </button>
       
       <!-- Reset Button -->
@@ -233,7 +216,7 @@
     
     <!-- Timer Display -->
     <div class="timer-display">
-      Time: <span class="timer-value">{gameState.timeS.toFixed(1)} s</span>
+      Time: <span class="timer-value">{$timeS.toFixed(1)} s</span>
     </div>
   </section>
 </div>
